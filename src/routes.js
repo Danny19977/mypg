@@ -21,6 +21,12 @@ import Account from "views/Account.js";
 // Import API test component
 import ApiConnectionTest from "views/ApiConnectionTest.js";
 
+// Import new form management components
+import FormBuilder from "views/FormBuilder.js";
+import FormViewer from "views/FormViewer.js";
+import FormSubmissions from "views/FormSubmissions.js";
+import FormOptions from "views/FormOptions.js";
+
 const dashboardRoutes = [
   // ...existing code...
   // DASHBOARD SECTION
@@ -86,6 +92,38 @@ const dashboardRoutes = [
     component: Visite,
     layout: "/admin",
     section: "presents"
+  },
+  
+  // FORM MANAGEMENT SECTION
+  {
+    heading: true,
+    name: "FORMS",
+    icon: "nc-icon nc-paper",
+    section: "forms"
+  },
+  {
+    path: "/form-builder",
+    name: "Form Builder",
+    icon: "nc-icon nc-ruler-pencil",
+    component: FormBuilder,
+    layout: "/admin",
+    section: "forms"
+  },
+  {
+    path: "/form-submissions",
+    name: "Form Submissions",
+    icon: "nc-icon nc-single-copy-04",
+    component: FormSubmissions,
+    layout: "/admin",
+    section: "forms"
+  },
+  {
+    path: "/form-options",
+    name: "Form Options",
+    icon: "nc-icon nc-settings-gear-65",
+    component: FormOptions,
+    layout: "/admin",
+    section: "forms"
   },
   
   // ACTIVITIES SECTION

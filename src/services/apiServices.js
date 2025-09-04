@@ -816,3 +816,493 @@ export const userLogsService = {
     }
   }
 };
+
+// ============================================================================
+// FORM SERVICES - For dynamic form management
+// ============================================================================
+
+export const formService = {
+  // Get all forms
+  getAll: async () => {
+    try {
+      const response = await api.get('/forms/all');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch forms: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get paginated forms
+  getAllPaginated: async (page = 1, limit = 15, search = '') => {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        ...(search && { search })
+      });
+      const response = await api.get(`/forms/all/paginate?${params}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch forms: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get form by UUID
+  getByUuid: async (uuid) => {
+    try {
+      const response = await api.get(`/forms/get/${uuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get forms by user
+  getByUser: async (userUuid) => {
+    try {
+      const response = await api.get(`/forms/user/${userUuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch user forms: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Create form
+  create: async (formData) => {
+    try {
+      const response = await api.post('/forms/create', formData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create form: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Update form
+  update: async (uuid, formData) => {
+    try {
+      const response = await api.put(`/forms/update/${uuid}`, formData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to update form: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Delete form
+  delete: async (uuid) => {
+    try {
+      const response = await api.delete(`/forms/delete/${uuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to delete form: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // PUBLIC ENDPOINTS (no authentication required)
+  // Get public form for filling out
+  getPublicForm: async (uuid) => {
+    try {
+      const response = await api.get(`/public/forms/${uuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form: ${error.response?.data?.message || error.message}`);
+    }
+  }
+};
+
+// ============================================================================
+// FORM ITEM SERVICES - For form fields/questions
+// ============================================================================
+
+export const formItemService = {
+  // Get all form items
+  getAll: async () => {
+    try {
+      const response = await api.get('/form-items/all');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form items: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get paginated form items
+  getAllPaginated: async (page = 1, limit = 15, search = '') => {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        ...(search && { search })
+      });
+      const response = await api.get(`/form-items/all/paginate?${params}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form items: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get form item by UUID
+  getByUuid: async (uuid) => {
+    try {
+      const response = await api.get(`/form-items/get/${uuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form item: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get form items by form UUID
+  getByForm: async (formUuid) => {
+    try {
+      const response = await api.get(`/form-items/form/${formUuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form items: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Create form item
+  create: async (formItemData) => {
+    try {
+      const response = await api.post('/form-items/create', formItemData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create form item: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Update form item
+  update: async (uuid, formItemData) => {
+    try {
+      const response = await api.put(`/form-items/update/${uuid}`, formItemData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to update form item: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Delete form item
+  delete: async (uuid) => {
+    try {
+      const response = await api.delete(`/form-items/delete/${uuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to delete form item: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // PUBLIC ENDPOINTS (no authentication required)
+  // Get public form items for display
+  getPublicFormItems: async (formUuid) => {
+    try {
+      const response = await api.get(`/public/forms/${formUuid}/items`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form items: ${error.response?.data?.message || error.message}`);
+    }
+  }
+};
+
+// ============================================================================
+// FORM OPTION SERVICES (VisiteService) - For form field options (dropdowns, radio buttons, etc.)
+// ============================================================================
+
+export const formOptionService = {
+  // Get all form options
+  getAll: async () => {
+    try {
+      const response = await api.get('/visites/all');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form options: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get paginated form options
+  getAllPaginated: async (page = 1, limit = 15, search = '') => {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        ...(search && { search })
+      });
+      const response = await api.get(`/visites/all/paginate?${params}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form options: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get form option by UUID
+  getByUuid: async (uuid) => {
+    try {
+      const response = await api.get(`/visites/get/${uuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form option: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get options by form item UUID
+  getByFormItem: async (formItemUuid) => {
+    try {
+      const response = await api.get(`/visites/form-item/${formItemUuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form options: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Create form option
+  create: async (optionData) => {
+    try {
+      const response = await api.post('/visites/create', optionData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create form option: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Update form option
+  update: async (uuid, optionData) => {
+    try {
+      const response = await api.put(`/visites/update/${uuid}`, optionData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to update form option: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Delete form option
+  delete: async (uuid) => {
+    try {
+      const response = await api.delete(`/visites/delete/${uuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to delete form option: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // PUBLIC ENDPOINTS (no authentication required)
+  // Get public options for select/radio/checkbox fields
+  getPublicOptions: async (formItemUuid) => {
+    try {
+      const response = await api.get(`/public/form-items/${formItemUuid}/options`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form options: ${error.response?.data?.message || error.message}`);
+    }
+  }
+};
+
+// ============================================================================
+// FORM SUBMISSION SERVICES (VisiteHarder) - For form submission instances
+// ============================================================================
+
+export const formSubmissionService = {
+  // Get all form submissions
+  getAll: async () => {
+    try {
+      const response = await api.get('/form-submissions/all');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form submissions: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get paginated form submissions
+  getAllPaginated: async (page = 1, limit = 15, search = '') => {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        ...(search && { search })
+      });
+      const response = await api.get(`/form-submissions/all/paginate?${params}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form submissions: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get form submission by UUID
+  getByUuid: async (uuid) => {
+    try {
+      const response = await api.get(`/form-submissions/get/${uuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form submission: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get submissions by form UUID
+  getByForm: async (formUuid) => {
+    try {
+      const response = await api.get(`/form-submissions/form/${formUuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form submissions: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get submissions by user UUID
+  getByUser: async (userUuid) => {
+    try {
+      const response = await api.get(`/form-submissions/user/${userUuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch user submissions: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Create form submission
+  create: async (submissionData) => {
+    try {
+      const response = await api.post('/form-submissions/create', submissionData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create form submission: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Update form submission
+  update: async (uuid, submissionData) => {
+    try {
+      const response = await api.put(`/form-submissions/update/${uuid}`, submissionData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to update form submission: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Delete form submission
+  delete: async (uuid) => {
+    try {
+      const response = await api.delete(`/form-submissions/delete/${uuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to delete form submission: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // PUBLIC ENDPOINTS (no authentication required)
+  // Submit form response
+  submitForm: async (submissionData) => {
+    try {
+      const response = await api.post('/public/form-submissions', submissionData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to submit form: ${error.response?.data?.message || error.message}`);
+    }
+  }
+};
+
+// ============================================================================
+// FORM RESPONSE SERVICES (VisiteData) - For individual field responses
+// ============================================================================
+
+export const formResponseService = {
+  // Get all form responses
+  getAll: async () => {
+    try {
+      const response = await api.get('/form-responses/all');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form responses: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get paginated form responses
+  getAllPaginated: async (page = 1, limit = 15, search = '') => {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        ...(search && { search })
+      });
+      const response = await api.get(`/form-responses/all/paginate?${params}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form responses: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get form response by UUID
+  getByUuid: async (uuid) => {
+    try {
+      const response = await api.get(`/form-responses/get/${uuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form response: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get responses by submission UUID
+  getBySubmission: async (submissionUuid) => {
+    try {
+      const response = await api.get(`/form-responses/submission/${submissionUuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch submission responses: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get responses by form item UUID
+  getByFormItem: async (formItemUuid) => {
+    try {
+      const response = await api.get(`/form-responses/form-item/${formItemUuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form item responses: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Get responses by user UUID
+  getByUser: async (userUuid) => {
+    try {
+      const response = await api.get(`/form-responses/user/${userUuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch user responses: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Create form response
+  create: async (responseData) => {
+    try {
+      const response = await api.post('/form-responses/create', responseData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create form response: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Update form response
+  update: async (uuid, responseData) => {
+    try {
+      const response = await api.put(`/form-responses/update/${uuid}`, responseData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to update form response: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Delete form response
+  delete: async (uuid) => {
+    try {
+      const response = await api.delete(`/form-responses/delete/${uuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to delete form response: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // PUBLIC ENDPOINTS (no authentication required)
+  // Submit individual field responses
+  submitResponse: async (responseData) => {
+    try {
+      const response = await api.post('/public/form-responses', responseData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to submit response: ${error.response?.data?.message || error.message}`);
+    }
+  }
+};
