@@ -17,6 +17,202 @@ import {
   ModalBody,
   ModalFooter
 } from 'reactstrap';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+
+// Enhanced CSS Styles for Drag and Drop
+const enhancedDragDropCSS = `
+/* === ENHANCED DRAG AND DROP STYLES === */
+.droppable-area {
+  min-height: 100px;
+  transition: all 0.3s ease;
+}
+
+.droppable-area.drag-over {
+  background-color: #e3f2fd;
+  border: 2px dashed #2196f3;
+  border-radius: 8px;
+  transform: scale(1.01);
+}
+
+.droppable-area.reorder-mode {
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.draggable-field {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.draggable-field.dragging {
+  opacity: 0.8;
+  transform: rotate(3deg) scale(1.05);
+  z-index: 1000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border: 2px solid #007bff;
+}
+
+.drag-handle {
+  cursor: grab;
+  padding: 8px 12px;
+  background: linear-gradient(45deg, #007bff, #0056b3);
+  color: white;
+  border-radius: 6px;
+  text-align: center;
+  min-width: 40px;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.drag-handle:hover {
+  background: linear-gradient(45deg, #0056b3, #004085);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  transform: scale(0.95);
+}
+
+.reorder-header {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #2196f3;
+  margin: -10px -10px 15px -10px;
+}
+
+.reorder-toggle-btn {
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 25px;
+  transition: all 0.3s ease;
+  border: none;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.9rem;
+}
+
+.reorder-toggle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.reorder-toggle-btn.active {
+  background: linear-gradient(45deg, #28a745, #20c997);
+  border-color: #28a745;
+  animation: pulse-success 2s infinite;
+}
+
+@keyframes pulse-success {
+  0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+}
+
+.section-item {
+  border-left: 4px solid #6c757d;
+  padding-left: 15px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 0 8px 8px 0;
+}
+
+.form-field-item {
+  position: relative;
+}
+
+.form-field-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.section-header-container {
+  position: relative;
+}
+
+/* Enhanced drag feedback */
+.draggable-field:not(.dragging):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Smooth transitions for all interactive elements */
+.badge, .btn, .form-control, .form-select {
+  transition: all 0.2s ease;
+}
+
+/* Special styling for drag mode */
+.droppable-area.reorder-mode .form-field-item {
+  border: 2px dashed transparent;
+  transition: all 0.3s ease;
+}
+
+.droppable-area.reorder-mode .form-field-item:hover {
+  border-color: #007bff;
+  background-color: #f8f9ff;
+}
+
+/* Drop zone indicators */
+.droppable-area.drag-over::before {
+  content: "Drop question here";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #2196f3;
+  font-weight: bold;
+  font-size: 1.2rem;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Success animation for completed reorder */
+@keyframes reorder-success {
+  0% { background-color: #d4edda; }
+  50% { background-color: #c3e6cb; }
+  100% { background-color: transparent; }
+}
+
+.draggable-field.reorder-success {
+  animation: reorder-success 1s ease-out;
+}
+
+/* Mobile responsiveness for drag handles */
+@media (max-width: 768px) {
+  .drag-handle {
+    padding: 6px 10px;
+    font-size: 1rem;
+    min-width: 35px;
+  }
+  
+  .reorder-header {
+    margin: -5px -5px 10px -5px;
+    padding: 8px;
+  }
+  
+  .reorder-toggle-btn {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+  }
+}
+
+/* === END ENHANCED DRAG AND DROP STYLES === */
+`;
+
+// Inject the CSS into the document head
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = enhancedDragDropCSS;
+  document.head.appendChild(styleElement);
+}
 import { 
   formService,
   formItemService,
@@ -24,6 +220,390 @@ import {
   formResponseService
 } from '../services/apiServices';
 import { useAuth } from '../contexts/AuthContext';
+
+// Professional styling for enhanced form submission experience
+const formSubmissionStyles = `
+  .field-number {
+    font-size: 0.75rem;
+    min-width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .badge-field-type {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  
+  .badge-required {
+    animation: pulse 2s infinite;
+  }
+  
+  .badge-conditional {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .badge-conditional::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shine 3s infinite;
+  }
+  
+  /* Drag and Drop Styles */
+  .drag-handle {
+    cursor: grab;
+    color: #6c757d;
+    padding: 0.5rem;
+    margin-right: 0.5rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+  }
+  
+  .drag-handle:hover {
+    background: #e9ecef;
+    color: #495057;
+    transform: scale(1.1);
+  }
+  
+  .drag-handle:active {
+    cursor: grabbing;
+    background: #007bff;
+    color: white;
+  }
+  
+  .draggable-field {
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  
+  .draggable-field.dragging {
+    transform: rotate(3deg);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
+    z-index: 1000;
+    background: white !important;
+  }
+  
+  .droppable-area {
+    min-height: 100px;
+    transition: all 0.3s ease;
+  }
+  
+  .droppable-area.drag-over {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border: 2px dashed #2196f3;
+    border-radius: 0.75rem;
+  }
+  
+  .drag-indicator {
+    height: 4px;
+    background: linear-gradient(90deg, #007bff, #28a745);
+    border-radius: 2px;
+    margin: 0.5rem 0;
+    opacity: 0;
+    transform: scaleX(0);
+    transition: all 0.3s ease;
+  }
+  
+  .drag-indicator.active {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  
+  .reorder-mode .form-field-item {
+    border: 2px dashed #dee2e6 !important;
+    background: #f8f9fa !important;
+  }
+  
+  .reorder-mode .form-field-item:hover {
+    border-color: #007bff !important;
+    background: white !important;
+  }
+  
+  .reorder-toggle-btn {
+    background: linear-gradient(45deg, #17a2b8, #138496);
+    border: none;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+  }
+  
+  .reorder-toggle-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(23, 162, 184, 0.4);
+  }
+  
+  .reorder-toggle-btn.active {
+    background: linear-gradient(45deg, #28a745, #1e7e34);
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  
+  @keyframes shine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+  
+  .form-field-item {
+    transition: all 0.3s ease;
+  }
+  
+  .form-field-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+  }
+  
+  .section-header-display {
+    position: relative;
+    margin: 2rem 0;
+  }
+  
+  .section-header-display::before,
+  .section-header-display::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #007bff, #6c757d, #007bff);
+  }
+  
+  .section-header-display::before {
+    top: 0;
+  }
+  
+  .section-header-display::after {
+    bottom: 0;
+  }
+  
+  .scale-container {
+    padding: 1rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 0.5rem;
+    border: 1px solid #dee2e6;
+  }
+  
+  .scale-option {
+    flex: 1;
+    max-width: 60px;
+  }
+  
+  .scale-circle {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    border: 2px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  
+  .scale-circle:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+    transform: scale(1.1);
+  }
+  
+  .scale-label input:checked + .scale-circle {
+    border-color: #007bff;
+    background: #007bff;
+    color: white;
+    transform: scale(1.15);
+  }
+  
+  .rating-container {
+    padding: 1rem;
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border-radius: 0.5rem;
+    border: 1px solid #ffeaa7;
+  }
+  
+  .rating-btn {
+    transition: all 0.2s ease;
+  }
+  
+  .rating-btn:hover {
+    transform: scale(1.2);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  }
+  
+  .field-input-container .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+  }
+  
+  .field-error {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+  
+  .field-value-preview {
+    font-family: 'Courier New', monospace;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .field-value-preview::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: valueShine 2s infinite;
+  }
+  
+  @keyframes valueShine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+  
+  .conditional-fields-container {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border: 2px dashed #2196f3;
+    border-radius: 0.75rem;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .conditional-fields-container::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #2196f3, #21cbf3, #2196f3);
+    z-index: -1;
+    border-radius: 0.75rem;
+    animation: borderFlow 3s linear infinite;
+  }
+  
+  @keyframes borderFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .table-grid {
+    background: white;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .table-grid th {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+    font-weight: 600;
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .table-grid td {
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    vertical-align: middle;
+    border-color: #dee2e6;
+  }
+  
+  .table-grid tbody tr:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .debug-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 0.75rem;
+    position: relative;
+  }
+  
+  .debug-section::before {
+    content: '🔧';
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    background: #f8f9fa;
+    padding: 0 0.5rem;
+    font-size: 1.2rem;
+  }
+  
+  @media (max-width: 768px) {
+    .field-number {
+      min-width: 20px;
+      height: 20px;
+      font-size: 0.65rem;
+    }
+    
+    .badge-field-type {
+      font-size: 0.6rem;
+    }
+    
+    .scale-circle {
+      width: 30px;
+      height: 30px;
+      font-size: 0.8rem;
+    }
+    
+    .rating-btn {
+      font-size: 1.2rem;
+      padding: 0.15rem 0.3rem;
+    }
+    
+    .drag-handle {
+      padding: 0.25rem;
+      margin-right: 0.25rem;
+    }
+  }
+`;
+
+// Inject styles into the document head
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.type = 'text/css';
+  styleSheet.innerText = formSubmissionStyles;
+  
+  // Remove existing style if it exists
+  const existingStyle = document.getElementById('form-submission-styles');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+  
+  styleSheet.id = 'form-submission-styles';
+  document.head.appendChild(styleSheet);
+}
 
 const FormSubmissions = () => {
   const { user } = useAuth(); // Get authenticated user
@@ -39,6 +619,10 @@ const FormSubmissions = () => {
   const [validationErrors, setValidationErrors] = useState({});
   const [gpsCoordinates, setGpsCoordinates] = useState({ latitude: null, longitude: null });
   const [gpsStatus, setGpsStatus] = useState('idle'); // 'idle', 'requesting', 'success', 'error'
+  
+  // Drag and Drop states
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   
   // Camera states
   const [showCamera, setShowCamera] = useState(false);
@@ -276,6 +860,7 @@ const FormSubmissions = () => {
   const updateConditionalFieldVisibility = (item, selectedValue) => {
     console.log('🔍 Updating conditional field visibility:', {
       itemUuid: item.uuid,
+      itemQuestion: item.question,
       selectedValue,
       conditionalFields: item.conditional_fields
     });
@@ -299,12 +884,39 @@ const FormSubmissions = () => {
         });
         
         // Show conditional fields for the selected value
+        // Handle various possible values including case-insensitive matching
+        let matchedKey = null;
+        
+        // First try exact match
         if (selectedValue && conditionalFields[selectedValue]) {
-          conditionalFields[selectedValue].forEach(field => {
-            const fieldKey = `${item.uuid}_${selectedValue}_${field.id}`;
+          matchedKey = selectedValue;
+        } else if (selectedValue) {
+          // Try case-insensitive match
+          const lowerSelectedValue = selectedValue.toLowerCase();
+          matchedKey = Object.keys(conditionalFields).find(key => 
+            key.toLowerCase() === lowerSelectedValue
+          );
+          
+          // Try partial match for common variations
+          if (!matchedKey) {
+            matchedKey = Object.keys(conditionalFields).find(key => {
+              const lowerKey = key.toLowerCase();
+              const lowerValue = lowerSelectedValue;
+              return lowerKey.includes(lowerValue) || lowerValue.includes(lowerKey);
+            });
+          }
+        }
+        
+        if (matchedKey && conditionalFields[matchedKey]) {
+          console.log(`🎯 Found matching key: "${matchedKey}" for selected value: "${selectedValue}"`);
+          conditionalFields[matchedKey].forEach(field => {
+            const fieldKey = `${item.uuid}_${matchedKey}_${field.id}`;
             newVisibleFields[fieldKey] = true;
             console.log(`👁️ Showing field: ${fieldKey}`, field);
           });
+        } else {
+          console.log(`❌ No matching conditional fields found for: "${selectedValue}"`);
+          console.log('Available keys:', Object.keys(conditionalFields));
         }
         
         console.log('🎯 Final visible fields state:', newVisibleFields);
@@ -315,7 +927,57 @@ const FormSubmissions = () => {
     }
   };
 
-  // Camera handling functions
+  // Drag and Drop Handlers
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
+
+  const handleDragEnd = (result) => {
+    setIsDragging(false);
+    
+    const { destination, source, draggableId } = result;
+
+    // If dropped outside the list or in the same position, do nothing
+    if (!destination || 
+        (destination.droppableId === source.droppableId && destination.index === source.index)) {
+      return;
+    }
+
+    console.log('🎯 Drag end result:', {
+      source: source.index,
+      destination: destination.index,
+      draggableId
+    });
+
+    // Reorder the formItems array
+    const newFormItems = Array.from(formItems);
+    const [reorderedItem] = newFormItems.splice(source.index, 1);
+    newFormItems.splice(destination.index, 0, reorderedItem);
+
+    // Update the form items with new order
+    setFormItems(newFormItems);
+
+    // Show success message
+    setSuccess(`Question "${reorderedItem.question}" moved successfully!`);
+    setTimeout(() => setSuccess(null), 3000);
+
+    console.log('✅ Form items reordered:', newFormItems.map((item, index) => ({
+      index,
+      question: item.question,
+      uuid: item.uuid
+    })));
+  };
+
+  const toggleReorderMode = () => {
+    setIsReorderMode(!isReorderMode);
+    if (!isReorderMode) {
+      setSuccess('Reorder mode enabled! Drag questions to rearrange them.');
+      setTimeout(() => setSuccess(null), 3000);
+    } else {
+      setSuccess('Reorder mode disabled. Questions saved in new order.');
+      setTimeout(() => setSuccess(null), 3000);
+    }
+  };
   const handleCameraCapture = (itemUuid) => {
     setCurrentCameraItemUuid(itemUuid);
     startCamera();
@@ -436,33 +1098,20 @@ const FormSubmissions = () => {
       console.log('🌍 GPS Coordinates before submission:', gpsCoordinates);
       console.log('🌍 GPS Status:', gpsStatus);
       
-      // Create submission with all required UUIDs and GPS coordinates
+      // Create submission with all required UUIDs and GPS coordinates at submission level
       const submissionData = {
         form_uuid: selectedForm.uuid,
-        submitter_name: user?.name || 'Form Viewer',
+        submitter_name: user?.fullname || user?.name || 'Form Viewer',
         submitter_email: user?.email || 'user@example.com',
         status: 'submitted',
         // Include user information if available
         ...(user?.uuid && { user_uuid: user.uuid }),
         ...(user?.country_uuid && { country_uuid: user.country_uuid }),
         ...(user?.province_uuid && { province_uuid: user.province_uuid }),
-        ...(user?.area_uuid && { area_uuid: user.area_uuid }),
-        // Add GPS coordinates if available
-        ...(gpsCoordinates.latitude !== null && gpsCoordinates.longitude !== null && 
-            typeof gpsCoordinates.latitude === 'number' && typeof gpsCoordinates.longitude === 'number' && 
-            !isNaN(gpsCoordinates.latitude) && !isNaN(gpsCoordinates.longitude) && {
-          latitude: gpsCoordinates.latitude,
-          longitude: gpsCoordinates.longitude
-        })
+        ...(user?.area_uuid && { area_uuid: user.area_uuid })
       };
 
       console.log('📝 Submitting form with data:', submissionData);
-      console.log('🌍 GPS included in submission:', {
-        hasLatitude: !!submissionData.latitude,
-        hasLongitude: !!submissionData.longitude,
-        latitude: submissionData.latitude,
-        longitude: submissionData.longitude
-      });
 
       const submissionResponse = await formSubmissionService.create(submissionData);
       console.log('📝 Form submission response:', submissionResponse);
@@ -470,38 +1119,20 @@ const FormSubmissions = () => {
       if (submissionResponse.status === 'success') {
         const submissionUuid = submissionResponse.data.uuid;
         
-        // Create responses for both main fields and conditional fields
+        // Create responses for all form fields including conditional fields
         for (const [itemUuid, responseData] of Object.entries(responses)) {
           if (responseData.value !== null && responseData.value !== undefined && responseData.value.toString().trim() !== '') {
+            
+            // Prepare response payload based on backend VisiteData model
             const responsePayload = {
-              form_submission_uuid: submissionUuid
+              visite_harder_uuid: submissionUuid, // Reference to form submission
+              form_item_uuid: itemUuid, // Reference to form field
+              // Include user and location info for easier querying
+              ...(user?.uuid && { user_uuid: user.uuid }),
+              ...(user?.country_uuid && { country_uuid: user.country_uuid }),
+              ...(user?.province_uuid && { province_uuid: user.province_uuid }),
+              ...(user?.area_uuid && { area_uuid: user.area_uuid })
             };
-
-            // Handle conditional fields vs regular fields
-            if (itemUuid.includes('_')) {
-              // This is a conditional field - extract the parent item UUID
-              const parts = itemUuid.split('_');
-              if (parts.length >= 3) {
-                // Format: parentUuid_selectedValue_fieldId
-                const parentUuid = parts[0];
-                const fieldId = parts[parts.length - 1];
-                
-                // For conditional fields, we create a virtual form_item_uuid
-                // The backend should handle this appropriately
-                responsePayload.form_item_uuid = `${parentUuid}_conditional_${fieldId}`;
-                console.log('🔗 Conditional field mapping:', {
-                  originalKey: itemUuid,
-                  parentUuid,
-                  fieldId,
-                  mappedUuid: responsePayload.form_item_uuid
-                });
-              } else {
-                responsePayload.form_item_uuid = itemUuid;
-              }
-            } else {
-              // Regular form item
-              responsePayload.form_item_uuid = itemUuid;
-            }
 
             // Set the appropriate value field based on type with proper type conversion
             const value = responseData.value;
@@ -544,6 +1175,14 @@ const FormSubmissions = () => {
                 responsePayload.text_value = value.toString();
             }
 
+            // Add GPS coordinates to each response if available
+            if (gpsCoordinates.latitude !== null && gpsCoordinates.longitude !== null && 
+                typeof gpsCoordinates.latitude === 'number' && typeof gpsCoordinates.longitude === 'number' && 
+                !isNaN(gpsCoordinates.latitude) && !isNaN(gpsCoordinates.longitude)) {
+              responsePayload.latitude = gpsCoordinates.latitude;
+              responsePayload.longitude = gpsCoordinates.longitude;
+            }
+
             console.log('💾 Saving response:', {
               itemUuid,
               responsePayload,
@@ -561,14 +1200,55 @@ const FormSubmissions = () => {
           }
         }
 
-        // Auto-submit GPS coordinates as form responses if available
+        // Handle conditional fields
+        for (const [conditionalKey, conditionalData] of Object.entries(responses)) {
+          if (conditionalKey.includes('_') && conditionalData.value !== null && 
+              conditionalData.value !== undefined && conditionalData.value.toString().trim() !== '') {
+            
+            // Extract parent item UUID and field info from conditional key
+            const parts = conditionalKey.split('_');
+            if (parts.length >= 3) {
+              const parentUuid = parts[0];
+              const selectedValue = parts[1];
+              const fieldId = parts[parts.length - 1];
+              
+              // Create a virtual form_item_uuid for conditional fields
+              const conditionalFieldUuid = `${parentUuid}_conditional_${fieldId}`;
+              
+              const conditionalResponsePayload = {
+                visite_harder_uuid: submissionUuid,
+                form_item_uuid: conditionalFieldUuid,
+                text_value: `${conditionalData.value} (conditional from ${parentUuid} when ${selectedValue})`,
+                // Include user and location info
+                ...(user?.uuid && { user_uuid: user.uuid }),
+                ...(user?.country_uuid && { country_uuid: user.country_uuid }),
+                ...(user?.province_uuid && { province_uuid: user.province_uuid }),
+                ...(user?.area_uuid && { area_uuid: user.area_uuid }),
+                // Add GPS coordinates
+                ...(gpsCoordinates.latitude !== null && gpsCoordinates.longitude !== null && 
+                    typeof gpsCoordinates.latitude === 'number' && typeof gpsCoordinates.longitude === 'number' && 
+                    !isNaN(gpsCoordinates.latitude) && !isNaN(gpsCoordinates.longitude) && {
+                  latitude: gpsCoordinates.latitude,
+                  longitude: gpsCoordinates.longitude
+                })
+              };
+
+              try {
+                const conditionalResult = await formResponseService.create(conditionalResponsePayload);
+                console.log('✅ Conditional field response saved:', conditionalResult);
+              } catch (error) {
+                console.error(`❌ Failed to save conditional response for ${conditionalKey}:`, error);
+              }
+            }
+          }
+        }
+
+        // Auto-submit GPS coordinates as dedicated form responses if available
         if (gpsCoordinates.latitude !== null && gpsCoordinates.longitude !== null && 
             typeof gpsCoordinates.latitude === 'number' && typeof gpsCoordinates.longitude === 'number' && 
             !isNaN(gpsCoordinates.latitude) && !isNaN(gpsCoordinates.longitude)) {
           
           console.log('🌍 Adding GPS coordinates as automatic form responses');
-          console.log('🌍 Current GPS coordinates:', gpsCoordinates);
-          console.log('🌍 Available form items:', formItems.map(item => ({ uuid: item.uuid, question: item.question })));
           
           // Check if there are existing latitude/longitude form items
           const latitudeItem = formItems.find(item => 
@@ -590,80 +1270,69 @@ const FormSubmissions = () => {
             )
           );
 
-          console.log('🌍 Found latitude item:', latitudeItem);
-          console.log('🌍 Found longitude item:', longitudeItem);
-
-          // Only create responses for existing form fields to avoid database errors
           // Create latitude response if field exists
           if (latitudeItem) {
             try {
               const latitudeResponse = {
-                form_submission_uuid: submissionUuid,
+                visite_harder_uuid: submissionUuid,
                 form_item_uuid: latitudeItem.uuid,
                 number_value: gpsCoordinates.latitude,
-                submission_order: latitudeItem.sort_order || 9998
+                latitude: gpsCoordinates.latitude,
+                longitude: gpsCoordinates.longitude,
+                ...(user?.uuid && { user_uuid: user.uuid }),
+                ...(user?.country_uuid && { country_uuid: user.country_uuid }),
+                ...(user?.province_uuid && { province_uuid: user.province_uuid }),
+                ...(user?.area_uuid && { area_uuid: user.area_uuid })
               };
-              console.log('🌍 About to save latitude response:', latitudeResponse);
               const latitudeResult = await formResponseService.create(latitudeResponse);
-              console.log('✅ Latitude response saved successfully:', {
-                value: gpsCoordinates.latitude,
-                itemType: 'existing_item',
-                itemUuid: latitudeResponse.form_item_uuid,
-                result: latitudeResult
-              });
+              console.log('✅ Latitude response saved successfully:', latitudeResult);
             } catch (error) {
               console.error('❌ Failed to save latitude response:', error);
-              console.error('❌ Error details:', error.message);
-              console.error('❌ Error response:', error.response?.data);
             }
-          } else {
-            console.log('📍 No latitude form field found, skipping latitude response creation');
           }
 
           // Create longitude response if field exists
           if (longitudeItem) {
             try {
               const longitudeResponse = {
-                form_submission_uuid: submissionUuid,
+                visite_harder_uuid: submissionUuid,
                 form_item_uuid: longitudeItem.uuid,
                 number_value: gpsCoordinates.longitude,
-                submission_order: longitudeItem.sort_order || 9999
+                latitude: gpsCoordinates.latitude,
+                longitude: gpsCoordinates.longitude,
+                ...(user?.uuid && { user_uuid: user.uuid }),
+                ...(user?.country_uuid && { country_uuid: user.country_uuid }),
+                ...(user?.province_uuid && { province_uuid: user.province_uuid }),
+                ...(user?.area_uuid && { area_uuid: user.area_uuid })
               };
-              console.log('🌍 About to save longitude response:', longitudeResponse);
               const longitudeResult = await formResponseService.create(longitudeResponse);
-              console.log('✅ Longitude response saved successfully:', {
-                value: gpsCoordinates.longitude,
-                itemType: 'existing_item',
-                itemUuid: longitudeResponse.form_item_uuid,
-                result: longitudeResult
-              });
+              console.log('✅ Longitude response saved successfully:', longitudeResult);
             } catch (error) {
               console.error('❌ Failed to save longitude response:', error);
-              console.error('❌ Error details:', error.message);
-              console.error('❌ Error response:', error.response?.data);
             }
-          } else {
-            console.log('📍 No longitude form field found, skipping longitude response creation');
           }
 
-          // If no GPS fields were found, try creating special GPS metadata responses
+          // If no specific GPS fields were found, create automatic GPS response entries
           if (!latitudeItem && !longitudeItem) {
-            console.log('🌍 No GPS form fields found, attempting to save GPS as metadata responses');
+            console.log('🌍 No GPS form fields found, creating automatic GPS metadata responses');
             
             try {
-              // Try to save GPS coordinates as special metadata responses
+              // Create a combined GPS coordinates response
               const gpsMetadataResponse = {
-                form_submission_uuid: submissionUuid,
-                form_item_uuid: `gps_coordinates_${submissionUuid}`, // Unique identifier
-                text_value: `lat:${gpsCoordinates.latitude},lng:${gpsCoordinates.longitude}`,
-                submission_order: 9999
+                visite_harder_uuid: submissionUuid,
+                form_item_uuid: `gps_auto_${submissionUuid}`, // Virtual field for GPS data
+                text_value: `GPS Coordinates: ${gpsCoordinates.latitude}, ${gpsCoordinates.longitude}`,
+                latitude: gpsCoordinates.latitude,
+                longitude: gpsCoordinates.longitude,
+                ...(user?.uuid && { user_uuid: user.uuid }),
+                ...(user?.country_uuid && { country_uuid: user.country_uuid }),
+                ...(user?.province_uuid && { province_uuid: user.province_uuid }),
+                ...(user?.area_uuid && { area_uuid: user.area_uuid })
               };
-              console.log('🌍 Attempting to save GPS metadata:', gpsMetadataResponse);
               const gpsResult = await formResponseService.create(gpsMetadataResponse);
               console.log('✅ GPS metadata saved successfully:', gpsResult);
             } catch (error) {
               console.error('❌ Failed to save GPS metadata:', error);
-              console.error('❌ This suggests the backend requires valid form_item_uuid values');
             }
           }
         } else {
@@ -677,7 +1346,7 @@ const FormSubmissions = () => {
           });
         }
 
-        setSuccess('Form submitted successfully!');
+        setSuccess('Form submitted successfully with all field data and GPS coordinates!');
         setResponses({});
         setConditionallyVisibleFields({});
         setValidationErrors({});
@@ -712,6 +1381,16 @@ const FormSubmissions = () => {
     const value = response?.value || '';
     const hasError = validationErrors[item.uuid];
 
+    // Parse additional options for advanced field types
+    let additionalOptions = {};
+    try {
+      if (item.additional_options) {
+        additionalOptions = JSON.parse(item.additional_options);
+      }
+    } catch (error) {
+      console.warn('Error parsing additional options for item:', item.uuid, error);
+    }
+
     switch (item.item_type) {
       case 'text':
         return (
@@ -720,10 +1399,12 @@ const FormSubmissions = () => {
             value={value}
             onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
             invalid={!!hasError}
-            placeholder={`Enter ${item.question.toLowerCase()}`}
+            placeholder={additionalOptions.placeholder || `Enter ${item.question.toLowerCase()}`}
+            maxLength={additionalOptions.maxLength || undefined}
           />
         );
 
+      case 'paragraph':
       case 'textarea':
         return (
           <Input
@@ -731,19 +1412,24 @@ const FormSubmissions = () => {
             value={value}
             onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
             invalid={!!hasError}
-            placeholder={`Enter ${item.question.toLowerCase()}`}
-            rows="3"
+            placeholder={additionalOptions.placeholder || `Enter ${item.question.toLowerCase()}`}
+            rows={additionalOptions.rows || "4"}
+            maxLength={additionalOptions.maxLength || undefined}
           />
         );
 
       case 'number':
+      case 'integer':
         return (
           <Input
             type="number"
             value={value}
             onChange={(e) => handleInputChange(item.uuid, e.target.value, 'number')}
             invalid={!!hasError}
-            placeholder={`Enter ${item.question.toLowerCase()}`}
+            placeholder={additionalOptions.placeholder || `Enter ${item.question.toLowerCase()}`}
+            min={additionalOptions.min || undefined}
+            max={additionalOptions.max || undefined}
+            step={item.item_type === 'integer' ? '1' : (additionalOptions.step || 'any')}
           />
         );
 
@@ -754,7 +1440,40 @@ const FormSubmissions = () => {
             value={value}
             onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
             invalid={!!hasError}
-            placeholder={`Enter ${item.question.toLowerCase()}`}
+            placeholder={additionalOptions.placeholder || "Enter email address"}
+          />
+        );
+
+      case 'url':
+        return (
+          <Input
+            type="url"
+            value={value}
+            onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
+            invalid={!!hasError}
+            placeholder={additionalOptions.placeholder || "Enter URL (https://...)"}
+          />
+        );
+
+      case 'phone':
+        return (
+          <Input
+            type="tel"
+            value={value}
+            onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
+            invalid={!!hasError}
+            placeholder={additionalOptions.placeholder || "Enter phone number"}
+          />
+        );
+
+      case 'password':
+        return (
+          <Input
+            type="password"
+            value={value}
+            onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
+            invalid={!!hasError}
+            placeholder={additionalOptions.placeholder || "Enter password"}
           />
         );
 
@@ -765,27 +1484,200 @@ const FormSubmissions = () => {
             value={value}
             onChange={(e) => handleInputChange(item.uuid, e.target.value, 'date')}
             invalid={!!hasError}
+            min={additionalOptions.minDate || undefined}
+            max={additionalOptions.maxDate || undefined}
           />
+        );
+
+      case 'time':
+        return (
+          <Input
+            type="time"
+            value={value}
+            onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
+            invalid={!!hasError}
+          />
+        );
+
+      case 'datetime-local':
+        return (
+          <Input
+            type="datetime-local"
+            value={value}
+            onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
+            invalid={!!hasError}
+          />
+        );
+
+      case 'color':
+        return (
+          <div className="d-flex align-items-center gap-3">
+            <Input
+              type="color"
+              value={value || '#000000'}
+              onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
+              invalid={!!hasError}
+              style={{ width: '60px', height: '40px' }}
+            />
+            <Input
+              type="text"
+              value={value}
+              onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
+              placeholder="Color value"
+              style={{ flex: 1 }}
+            />
+          </div>
+        );
+
+      case 'range':
+        return (
+          <div>
+            <div className="d-flex justify-content-between mb-2">
+              <small className="text-muted">{additionalOptions.minLabel || additionalOptions.min || 0}</small>
+              <strong className="text-primary">{value || additionalOptions.min || 0}</strong>
+              <small className="text-muted">{additionalOptions.maxLabel || additionalOptions.max || 100}</small>
+            </div>
+            <Input
+              type="range"
+              value={value || additionalOptions.min || 0}
+              onChange={(e) => handleInputChange(item.uuid, e.target.value, 'number')}
+              invalid={!!hasError}
+              min={additionalOptions.min || 0}
+              max={additionalOptions.max || 100}
+              step={additionalOptions.step || 1}
+              className="form-range"
+            />
+          </div>
+        );
+
+      case 'linear-scale':
+        const scaleMin = parseInt(additionalOptions.scaleMin) || 1;
+        const scaleMax = parseInt(additionalOptions.scaleMax) || 5;
+        const scaleArray = Array.from({ length: scaleMax - scaleMin + 1 }, (_, i) => scaleMin + i);
+        
+        return (
+          <div>
+            <div className="d-flex justify-content-between mb-3">
+              <small className="text-muted fw-bold">{additionalOptions.scaleMinLabel || scaleMin}</small>
+              <small className="text-muted fw-bold">{additionalOptions.scaleMaxLabel || scaleMax}</small>
+            </div>
+            <div className="d-flex justify-content-between align-items-center scale-container">
+              {scaleArray.map((scaleValue) => (
+                <div key={scaleValue} className="text-center scale-option">
+                  <FormGroup check>
+                    <Input
+                      type="radio"
+                      name={item.uuid}
+                      value={scaleValue}
+                      checked={parseInt(value) === scaleValue}
+                      onChange={(e) => handleInputChange(item.uuid, parseInt(e.target.value), 'number')}
+                      id={`scale_${item.uuid}_${scaleValue}`}
+                    />
+                    <Label for={`scale_${item.uuid}_${scaleValue}`} className="scale-label">
+                      <div className="scale-circle">{scaleValue}</div>
+                    </Label>
+                  </FormGroup>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'rating':
+        const maxRating = parseInt(additionalOptions.maxRating) || 5;
+        const ratingType = additionalOptions.ratingType || 'stars';
+        const ratingArray = Array.from({ length: maxRating }, (_, i) => i + 1);
+        
+        return (
+          <div className="rating-container">
+            <div className="d-flex gap-2 align-items-center">
+              {ratingArray.map((rating) => (
+                <button
+                  key={rating}
+                  type="button"
+                  className={`btn rating-btn ${parseInt(value) >= rating ? 'rating-active' : 'rating-inactive'}`}
+                  onClick={() => handleInputChange(item.uuid, rating, 'number')}
+                  style={{
+                    fontSize: '1.5rem',
+                    padding: '0.25rem 0.5rem',
+                    border: 'none',
+                    background: 'transparent',
+                    color: parseInt(value) >= rating ? '#ffc107' : '#dee2e6',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {ratingType === 'hearts' ? '♥' : ratingType === 'thumbs' ? '👍' : '★'}
+                </button>
+              ))}
+              {value && (
+                <span className="ms-2 text-muted">
+                  ({value}/{maxRating})
+                </span>
+              )}
+            </div>
+          </div>
         );
 
       case 'file':
         return (
-          <Input
-            type="file"
-            onChange={(e) => {
-              const file = e.target.files[0];
-              if (file) {
-                handleInputChange(item.uuid, file.name, 'file_url');
-                // Note: In a real application, you'd want to handle file upload properly
-                console.log('File selected:', file);
-              }
-            }}
-            invalid={!!hasError}
-            accept="*/*"
-          />
+          <div>
+            <Input
+              type="file"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  handleInputChange(item.uuid, file.name, 'file_url');
+                  console.log('File selected:', file);
+                }
+              }}
+              invalid={!!hasError}
+              accept={additionalOptions.acceptedFileTypes || "*/*"}
+              multiple={additionalOptions.allowMultiple || false}
+            />
+            {additionalOptions.maxFileSize && (
+              <small className="text-muted mt-1 d-block">
+                Max file size: {additionalOptions.maxFileSize}MB
+              </small>
+            )}
+            {value && (
+              <div className="mt-2">
+                <small className="text-success">
+                  <i className="fa fa-check-circle me-1"></i>
+                  File selected: {value}
+                </small>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'image':
+        return (
+          <div>
+            <Input
+              type="file"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  handleInputChange(item.uuid, file.name, 'file_url');
+                  console.log('Image selected:', file);
+                }
+              }}
+              invalid={!!hasError}
+              accept="image/*"
+            />
+            {value && (
+              <div className="mt-2">
+                <small className="text-success">
+                  <i className="fa fa-image me-1"></i>
+                  Image selected: {value}
+                </small>
+              </div>
+            )}
+          </div>
         );
 
       case 'select':
+      case 'dropdown':
         return (
           <div>
             <Input
@@ -800,7 +1692,20 @@ const FormSubmissions = () => {
                   {option}
                 </option>
               ))}
+              {additionalOptions.showOtherOption && (
+                <option value="Other">Other...</option>
+              )}
             </Input>
+            
+            {/* Show "Other" text input if selected */}
+            {value === 'Other' && additionalOptions.showOtherOption && (
+              <Input
+                type="text"
+                className="mt-2"
+                placeholder="Please specify..."
+                onChange={(e) => handleInputChange(item.uuid, `Other: ${e.target.value}`, 'text')}
+              />
+            )}
             
             {/* Render conditional fields if they exist and an option is selected */}
             {value && item.conditional_fields && renderConditionalFields(item, value)}
@@ -808,33 +1713,61 @@ const FormSubmissions = () => {
         );
 
       case 'radio':
+      case 'multiple-choice':
         return (
           <div>
             {options.map((option, index) => (
               <FormGroup check key={index} className="mb-2">
-                <Label check>
+                <Label check className="d-flex align-items-center">
                   <Input
                     type="radio"
                     name={item.uuid}
                     value={option}
                     checked={value === option}
                     onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
+                    className="me-2"
                   />
-                  <span className="ms-2">{option}</span>
+                  <span>{option}</span>
                 </Label>
               </FormGroup>
             ))}
+            {additionalOptions.showOtherOption && (
+              <FormGroup check className="mb-2">
+                <Label check className="d-flex align-items-center">
+                  <Input
+                    type="radio"
+                    name={item.uuid}
+                    value="Other"
+                    checked={value && value.startsWith('Other')}
+                    onChange={(e) => handleInputChange(item.uuid, 'Other: ', 'text')}
+                    className="me-2"
+                  />
+                  <span className="me-2">Other:</span>
+                  {value && value.startsWith('Other') && (
+                    <Input
+                      type="text"
+                      size="sm"
+                      placeholder="Please specify..."
+                      value={value.replace('Other: ', '')}
+                      onChange={(e) => handleInputChange(item.uuid, `Other: ${e.target.value}`, 'text')}
+                      style={{ width: '200px' }}
+                    />
+                  )}
+                </Label>
+              </FormGroup>
+            )}
           </div>
         );
 
       case 'checkbox':
+      case 'multiple-select':
         return (
           <div>
             {options.map((option, index) => {
               const currentValues = value ? value.split(',').map(v => v.trim()) : [];
               return (
                 <FormGroup check key={index} className="mb-2">
-                  <Label check>
+                  <Label check className="d-flex align-items-center">
                     <Input
                       type="checkbox"
                       value={option}
@@ -850,42 +1783,207 @@ const FormSubmissions = () => {
                         
                         handleInputChange(item.uuid, newValues.join(','), 'text');
                       }}
+                      className="me-2"
                     />
-                    <span className="ms-2">{option}</span>
+                    <span>{option}</span>
                   </Label>
                 </FormGroup>
               );
             })}
+            {additionalOptions.showOtherOption && (
+              <FormGroup check className="mb-2">
+                <Label check className="d-flex align-items-center">
+                  <Input
+                    type="checkbox"
+                    value="Other"
+                    checked={value && value.includes('Other:')}
+                    onChange={(e) => {
+                      const currentValues = value ? value.split(',').map(v => v.trim()) : [];
+                      let newValues;
+                      
+                      if (e.target.checked) {
+                        newValues = [...currentValues.filter(v => !v.startsWith('Other:')), 'Other: '];
+                      } else {
+                        newValues = currentValues.filter(v => !v.startsWith('Other:'));
+                      }
+                      
+                      handleInputChange(item.uuid, newValues.join(','), 'text');
+                    }}
+                    className="me-2"
+                  />
+                  <span className="me-2">Other:</span>
+                  {value && value.includes('Other:') && (
+                    <Input
+                      type="text"
+                      size="sm"
+                      placeholder="Please specify..."
+                      onChange={(e) => {
+                        const currentValues = value ? value.split(',').map(v => v.trim()) : [];
+                        const otherValues = currentValues.filter(v => !v.startsWith('Other:'));
+                        const newValues = [...otherValues, `Other: ${e.target.value}`];
+                        handleInputChange(item.uuid, newValues.join(','), 'text');
+                      }}
+                      style={{ width: '200px' }}
+                    />
+                  )}
+                </Label>
+              </FormGroup>
+            )}
           </div>
         );
 
       case 'boolean':
+      case 'yes-no':
         return (
           <div>
             <FormGroup check className="mb-2">
-              <Label check>
+              <Label check className="d-flex align-items-center">
                 <Input
                   type="radio"
                   name={item.uuid}
                   value="true"
                   checked={value === 'true' || value === true}
                   onChange={(e) => handleInputChange(item.uuid, true, 'boolean')}
+                  className="me-2"
                 />
-                <span className="ms-2">Yes</span>
+                <span>{additionalOptions.yesLabel || 'Yes'}</span>
               </Label>
             </FormGroup>
             <FormGroup check className="mb-2">
-              <Label check>
+              <Label check className="d-flex align-items-center">
                 <Input
                   type="radio"
                   name={item.uuid}
                   value="false"
                   checked={value === 'false' || value === false}
                   onChange={(e) => handleInputChange(item.uuid, false, 'boolean')}
+                  className="me-2"
                 />
-                <span className="ms-2">No</span>
+                <span>{additionalOptions.noLabel || 'No'}</span>
               </Label>
             </FormGroup>
+          </div>
+        );
+
+      case 'grid':
+        const gridRows = additionalOptions.gridRows || [];
+        const gridColumns = additionalOptions.gridColumns || [];
+        const gridValues = value ? JSON.parse(value || '{}') : {};
+        
+        return (
+          <div className="table-responsive">
+            <table className="table table-bordered">
+              <thead>
+                <tr>
+                  <th style={{ width: '30%' }}></th>
+                  {gridColumns.map((column, index) => (
+                    <th key={index} className="text-center" style={{ width: `${70/gridColumns.length}%` }}>
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {gridRows.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    <td className="fw-bold">{row}</td>
+                    {gridColumns.map((column, colIndex) => (
+                      <td key={colIndex} className="text-center">
+                        <Input
+                          type="radio"
+                          name={`${item.uuid}_${rowIndex}`}
+                          value={column}
+                          checked={gridValues[row] === column}
+                          onChange={(e) => {
+                            const newGridValues = { ...gridValues, [row]: e.target.value };
+                            handleInputChange(item.uuid, JSON.stringify(newGridValues), 'text');
+                          }}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+
+      case 'checkbox-grid':
+        const checkboxGridRows = additionalOptions.gridRows || [];
+        const checkboxGridColumns = additionalOptions.gridColumns || [];
+        const checkboxGridValues = value ? JSON.parse(value || '{}') : {};
+        
+        return (
+          <div className="table-responsive">
+            <table className="table table-bordered">
+              <thead>
+                <tr>
+                  <th style={{ width: '30%' }}></th>
+                  {checkboxGridColumns.map((column, index) => (
+                    <th key={index} className="text-center" style={{ width: `${70/checkboxGridColumns.length}%` }}>
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {checkboxGridRows.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    <td className="fw-bold">{row}</td>
+                    {checkboxGridColumns.map((column, colIndex) => (
+                      <td key={colIndex} className="text-center">
+                        <Input
+                          type="checkbox"
+                          checked={checkboxGridValues[row] && checkboxGridValues[row].includes(column)}
+                          onChange={(e) => {
+                            const rowValues = checkboxGridValues[row] || [];
+                            let newRowValues;
+                            
+                            if (e.target.checked) {
+                              newRowValues = [...rowValues, column];
+                            } else {
+                              newRowValues = rowValues.filter(val => val !== column);
+                            }
+                            
+                            const newGridValues = { 
+                              ...checkboxGridValues, 
+                              [row]: newRowValues.length > 0 ? newRowValues : undefined 
+                            };
+                            
+                            // Clean up empty arrays
+                            Object.keys(newGridValues).forEach(key => {
+                              if (!newGridValues[key] || newGridValues[key].length === 0) {
+                                delete newGridValues[key];
+                              }
+                            });
+                            
+                            handleInputChange(item.uuid, JSON.stringify(newGridValues), 'text');
+                          }}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+
+      case 'section-header':
+      case 'page-break':
+        return (
+          <div className="section-header-display">
+            <hr className="my-4" />
+            <div className="text-center">
+              <h5 className="text-primary mb-3">
+                <i className="fa fa-bookmark me-2"></i>
+                {item.question}
+              </h5>
+              {additionalOptions.description && (
+                <p className="text-muted">{additionalOptions.description}</p>
+              )}
+            </div>
+            <hr className="my-4" />
           </div>
         );
 
@@ -896,26 +1994,80 @@ const FormSubmissions = () => {
               color="primary"
               onClick={() => handleCameraCapture(item.uuid)}
               className="mb-2 me-2"
+              size="lg"
             >
-              📷 Take Photo
+              <i className="fa fa-camera me-2"></i>
+              Take Photo
             </Button>
             {value && (
-              <div className="mt-2">
-                <small className="text-success">Photo captured: {value}</small>
+              <div className="mt-2 p-2 bg-success bg-opacity-10 rounded">
+                <small className="text-success">
+                  <i className="fa fa-check-circle me-1"></i>
+                  Photo captured: <strong>{value}</strong>
+                </small>
               </div>
+            )}
+            {additionalOptions.description && (
+              <small className="text-muted d-block mt-1">
+                {additionalOptions.description}
+              </small>
+            )}
+          </div>
+        );
+
+      case 'location':
+        return (
+          <div>
+            <div className="d-flex gap-2 mb-2">
+              <Button
+                color="info"
+                size="sm"
+                onClick={() => {
+                  if (gpsCoordinates.latitude && gpsCoordinates.longitude) {
+                    const locationString = `${gpsCoordinates.latitude}, ${gpsCoordinates.longitude}`;
+                    handleInputChange(item.uuid, locationString, 'text');
+                  } else {
+                    requestGPSCoordinates();
+                  }
+                }}
+                disabled={gpsStatus === 'requesting'}
+              >
+                <i className="fa fa-map-marker me-1"></i>
+                {gpsStatus === 'requesting' ? 'Getting Location...' : 'Use Current Location'}
+              </Button>
+            </div>
+            <Input
+              type="text"
+              value={value}
+              onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
+              invalid={!!hasError}
+              placeholder="Enter location or use current location"
+              readOnly={additionalOptions.autoCapture}
+            />
+            {gpsStatus === 'success' && gpsCoordinates.latitude && gpsCoordinates.longitude && (
+              <small className="text-success mt-1 d-block">
+                <i className="fa fa-check-circle me-1"></i>
+                Current location: {gpsCoordinates.latitude.toFixed(6)}, {gpsCoordinates.longitude.toFixed(6)}
+              </small>
             )}
           </div>
         );
 
       default:
         return (
-          <Input
-            type="text"
-            value={value}
-            onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
-            invalid={!!hasError}
-            placeholder={`Enter ${item.question.toLowerCase()}`}
-          />
+          <div>
+            <Input
+              type="text"
+              value={value}
+              onChange={(e) => handleInputChange(item.uuid, e.target.value, 'text')}
+              invalid={!!hasError}
+              placeholder={`Enter ${item.question.toLowerCase()}`}
+            />
+            <small className="text-warning mt-1 d-block">
+              <i className="fa fa-exclamation-triangle me-1"></i>
+              Unknown field type: {item.item_type}
+            </small>
+          </div>
         );
     }
   };
@@ -943,49 +2095,153 @@ const FormSubmissions = () => {
       }
 
       return (
-        <div className="mt-3 p-3 border rounded bg-light">
-          <h6 className="mb-3 text-primary">
-            <i className="fa fa-plus-circle me-2"></i>
-            Additional Questions for "{selectedValue}"
-            <small className="text-muted ms-2">({fieldsToShow.length} field{fieldsToShow.length !== 1 ? 's' : ''})</small>
-          </h6>
-          {fieldsToShow.map((field) => {
-            const fieldKey = `${parentItem.uuid}_${selectedValue}_${field.id}`;
-            const isVisible = conditionallyVisibleFields[fieldKey];
-            const response = responses[fieldKey];
-            const value = response?.value || '';
-            const hasError = validationErrors[fieldKey];
+        <div className="conditional-fields-container mt-4 p-4">
+          <div className="d-flex align-items-center justify-content-between mb-3">
+            <h6 className="mb-0 text-primary fw-bold">
+              <i className="fa fa-sitemap me-2"></i>
+              Conditional Questions for: 
+              <span className="badge bg-primary ms-2">{selectedValue}</span>
+            </h6>
+            <small className="text-muted">
+              <i className="fa fa-info-circle me-1"></i>
+              {fieldsToShow.length} field{fieldsToShow.length !== 1 ? 's' : ''} shown
+            </small>
+          </div>
+          
+          <div className="conditional-fields-grid">
+            {fieldsToShow.map((field) => {
+              const fieldKey = `${parentItem.uuid}_${selectedValue}_${field.id}`;
+              const isVisible = conditionallyVisibleFields[fieldKey];
+              const response = responses[fieldKey];
+              const value = response?.value || '';
+              const hasError = validationErrors[fieldKey];
 
-            console.log('🎨 Rendering conditional field:', {
-              fieldKey,
-              field,
-              isVisible,
-              hasValue: !!value
-            });
+              console.log('🎨 Rendering conditional field:', {
+                fieldKey,
+                field,
+                isVisible,
+                hasValue: !!value
+              });
 
-            if (!isVisible) {
-              console.log('🙈 Field not visible:', fieldKey);
-              return null;
-            }
+              if (!isVisible) {
+                console.log('🙈 Field not visible:', fieldKey);
+                return null;
+              }
 
-            return (
-              <div key={fieldKey} className="mb-3">
-                <Label className="fw-bold">
-                  {field.label}
-                  {field.required && <span className="text-danger"> *</span>}
-                  <small className="text-muted ms-2">({field.type})</small>
-                </Label>
-                
-                {renderConditionalField(field, fieldKey, value, hasError)}
-                
-                {hasError && (
-                  <div className="text-danger mt-1">
-                    <small>{hasError}</small>
+              // Get field type color
+              const getConditionalFieldTypeColor = (type) => {
+                const colorMap = {
+                  'text': 'primary',
+                  'paragraph': 'primary', 
+                  'textarea': 'primary',
+                  'number': 'success',
+                  'integer': 'success',
+                  'email': 'info',
+                  'url': 'info',
+                  'phone': 'info',
+                  'date': 'secondary',
+                  'time': 'secondary',
+                  'color': 'warning',
+                  'range': 'success',
+                  'linear-scale': 'success',
+                  'rating': 'warning',
+                  'file': 'dark',
+                  'select': 'primary',
+                  'dropdown': 'primary',
+                  'radio': 'primary',
+                  'multiple-choice': 'primary',
+                  'checkbox': 'primary',
+                  'multiple-select': 'primary',
+                  'boolean': 'secondary',
+                  'yes-no': 'secondary',
+                  'grid': 'info'
+                };
+                return colorMap[type] || 'secondary';
+              };
+
+              const fieldTypeColor = getConditionalFieldTypeColor(field.type);
+
+              return (
+                <div key={fieldKey} className="conditional-field-item mb-4 p-3 bg-white rounded-3 border border-primary border-opacity-25 shadow-sm">
+                  <div className="conditional-field-header mb-3">
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                      <Label className="fw-bold text-dark mb-0">
+                        <i className="fa fa-arrow-right text-primary me-2"></i>
+                        {field.label}
+                        {field.required && (
+                          <span className="text-danger ms-1" title="Required conditional field">
+                            <i className="fa fa-asterisk" style={{ fontSize: '0.6rem' }}></i>
+                          </span>
+                        )}
+                      </Label>
+                    </div>
+                    
+                    {/* Conditional Field Badges */}
+                    <div className="d-flex flex-wrap gap-1 mb-2">
+                      <span className={`badge bg-${fieldTypeColor} badge-field-type`} style={{ fontSize: '0.65rem' }}>
+                        <i className="fa fa-cog me-1"></i>
+                        {field.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </span>
+                      
+                      {field.required && (
+                        <span className="badge bg-danger badge-required" style={{ fontSize: '0.65rem' }}>
+                          <i className="fa fa-exclamation-circle me-1"></i>
+                          Required
+                        </span>
+                      )}
+                      
+                      {value && (
+                        <span className="badge bg-success" style={{ fontSize: '0.65rem' }}>
+                          <i className="fa fa-check-circle me-1"></i>
+                          Answered
+                        </span>
+                      )}
+                      
+                      <span className="badge bg-info text-dark" style={{ fontSize: '0.65rem' }}>
+                        <i className="fa fa-code-branch me-1"></i>
+                        Conditional
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
+                  
+                  {/* Field Input */}
+                  <div className="conditional-field-input">
+                    {renderConditionalField(field, fieldKey, value, hasError)}
+                    
+                    {hasError && (
+                      <div className="field-error mt-2 p-2 bg-danger bg-opacity-10 border border-danger rounded">
+                        <small className="text-danger fw-bold">
+                          <i className="fa fa-exclamation-triangle me-1"></i>
+                          {hasError}
+                        </small>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Conditional Field Value Preview */}
+                  {value && (
+                    <div className="field-value-preview mt-2 p-2 bg-info bg-opacity-10 border border-info rounded">
+                      <small className="text-info">
+                        <i className="fa fa-eye me-1"></i>
+                        <strong>Value:</strong> 
+                        <span className="ms-1 font-monospace">
+                          {typeof value === 'object' ? JSON.stringify(value, null, 2) : value.toString()}
+                        </span>
+                      </small>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Conditional Logic Summary */}
+          <div className="mt-3 p-2 bg-primary bg-opacity-10 rounded">
+            <small className="text-primary">
+              <i className="fa fa-info-circle me-1"></i>
+              <strong>Conditional Logic:</strong> These fields appear because you selected "{selectedValue}" above.
+            </small>
+          </div>
         </div>
       );
     } catch (error) {
@@ -1031,10 +2287,12 @@ const FormSubmissions = () => {
             value={value}
             onChange={(e) => handleConditionalFieldChange(e.target.value, 'text')}
             invalid={!!hasError}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
+            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+            maxLength={field.maxLength || undefined}
           />
         );
 
+      case 'paragraph':
       case 'textarea':
         return (
           <Input
@@ -1042,19 +2300,24 @@ const FormSubmissions = () => {
             value={value}
             onChange={(e) => handleConditionalFieldChange(e.target.value, 'text')}
             invalid={!!hasError}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
-            rows="3"
+            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+            rows={field.rows || "3"}
+            maxLength={field.maxLength || undefined}
           />
         );
 
       case 'number':
+      case 'integer':
         return (
           <Input
             type="number"
             value={value}
             onChange={(e) => handleConditionalFieldChange(e.target.value, 'number')}
             invalid={!!hasError}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
+            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+            min={field.min || undefined}
+            max={field.max || undefined}
+            step={field.type === 'integer' ? '1' : (field.step || 'any')}
           />
         );
 
@@ -1065,7 +2328,29 @@ const FormSubmissions = () => {
             value={value}
             onChange={(e) => handleConditionalFieldChange(e.target.value, 'text')}
             invalid={!!hasError}
-            placeholder={`Enter ${field.label.toLowerCase()}`}
+            placeholder={field.placeholder || "Enter email address"}
+          />
+        );
+
+      case 'url':
+        return (
+          <Input
+            type="url"
+            value={value}
+            onChange={(e) => handleConditionalFieldChange(e.target.value, 'text')}
+            invalid={!!hasError}
+            placeholder={field.placeholder || "Enter URL (https://...)"}
+          />
+        );
+
+      case 'phone':
+        return (
+          <Input
+            type="tel"
+            value={value}
+            onChange={(e) => handleConditionalFieldChange(e.target.value, 'text')}
+            invalid={!!hasError}
+            placeholder={field.placeholder || "Enter phone number"}
           />
         );
 
@@ -1076,37 +2361,207 @@ const FormSubmissions = () => {
             value={value}
             onChange={(e) => handleConditionalFieldChange(e.target.value, 'date')}
             invalid={!!hasError}
+            min={field.minDate || undefined}
+            max={field.maxDate || undefined}
           />
         );
 
+      case 'time':
+        return (
+          <Input
+            type="time"
+            value={value}
+            onChange={(e) => handleConditionalFieldChange(e.target.value, 'text')}
+            invalid={!!hasError}
+          />
+        );
+
+      case 'color':
+        return (
+          <div className="d-flex align-items-center gap-2">
+            <Input
+              type="color"
+              value={value || '#000000'}
+              onChange={(e) => handleConditionalFieldChange(e.target.value, 'text')}
+              invalid={!!hasError}
+              style={{ width: '50px', height: '35px' }}
+            />
+            <Input
+              type="text"
+              value={value}
+              onChange={(e) => handleConditionalFieldChange(e.target.value, 'text')}
+              placeholder="Color value"
+              style={{ flex: 1 }}
+            />
+          </div>
+        );
+
+      case 'range':
+        return (
+          <div>
+            <div className="d-flex justify-content-between mb-2">
+              <small className="text-muted">{field.minLabel || field.min || 0}</small>
+              <strong className="text-primary">{value || field.min || 0}</strong>
+              <small className="text-muted">{field.maxLabel || field.max || 100}</small>
+            </div>
+            <Input
+              type="range"
+              value={value || field.min || 0}
+              onChange={(e) => handleConditionalFieldChange(e.target.value, 'number')}
+              invalid={!!hasError}
+              min={field.min || 0}
+              max={field.max || 100}
+              step={field.step || 1}
+              className="form-range"
+            />
+          </div>
+        );
+
+      case 'linear-scale':
+        const scaleMin = parseInt(field.scaleMin) || 1;
+        const scaleMax = parseInt(field.scaleMax) || 5;
+        const scaleArray = Array.from({ length: scaleMax - scaleMin + 1 }, (_, i) => scaleMin + i);
+        
+        return (
+          <div>
+            <div className="d-flex justify-content-between mb-2">
+              <small className="text-muted fw-bold">{field.scaleMinLabel || scaleMin}</small>
+              <small className="text-muted fw-bold">{field.scaleMaxLabel || scaleMax}</small>
+            </div>
+            <div className="d-flex justify-content-between align-items-center">
+              {scaleArray.map((scaleValue) => (
+                <div key={scaleValue} className="text-center">
+                  <FormGroup check>
+                    <Input
+                      type="radio"
+                      name={fieldKey}
+                      value={scaleValue}
+                      checked={parseInt(value) === scaleValue}
+                      onChange={(e) => handleConditionalFieldChange(parseInt(e.target.value), 'number')}
+                      id={`scale_${fieldKey}_${scaleValue}`}
+                    />
+                    <Label for={`scale_${fieldKey}_${scaleValue}`} className="scale-label">
+                      <div className="scale-circle">{scaleValue}</div>
+                    </Label>
+                  </FormGroup>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'rating':
+        const maxRating = parseInt(field.maxRating) || 5;
+        const ratingType = field.ratingType || 'stars';
+        const ratingArray = Array.from({ length: maxRating }, (_, i) => i + 1);
+        
+        return (
+          <div className="rating-container">
+            <div className="d-flex gap-1 align-items-center">
+              {ratingArray.map((rating) => (
+                <button
+                  key={rating}
+                  type="button"
+                  className={`btn rating-btn ${parseInt(value) >= rating ? 'rating-active' : 'rating-inactive'}`}
+                  onClick={() => handleConditionalFieldChange(rating, 'number')}
+                  style={{
+                    fontSize: '1.2rem',
+                    padding: '0.2rem 0.4rem',
+                    border: 'none',
+                    background: 'transparent',
+                    color: parseInt(value) >= rating ? '#ffc107' : '#dee2e6',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {ratingType === 'hearts' ? '♥' : ratingType === 'thumbs' ? '👍' : '★'}
+                </button>
+              ))}
+              {value && (
+                <span className="ms-2 small text-muted">
+                  ({value}/{maxRating})
+                </span>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'select':
+      case 'dropdown':
+        return (
+          <Input
+            type="select"
+            value={value}
+            onChange={(e) => handleConditionalFieldChange(e.target.value, 'text')}
+            invalid={!!hasError}
+          >
+            <option value="">Select an option</option>
+            {field.options && field.options.map((option, index) => (
+              <option key={index} value={option}>
+                {option}
+              </option>
+            ))}
+            {field.showOtherOption && (
+              <option value="Other">Other...</option>
+            )}
+          </Input>
+        );
+
       case 'radio':
+      case 'multiple-choice':
         return (
           <div>
             {field.options && field.options.map((option, index) => (
               <FormGroup check key={index} className="mb-2">
-                <Label check>
+                <Label check className="d-flex align-items-center">
                   <Input
                     type="radio"
                     name={fieldKey}
                     value={option}
                     checked={value === option}
                     onChange={(e) => handleConditionalFieldChange(e.target.value, 'text')}
+                    className="me-2"
                   />
-                  <span className="ms-2">{option}</span>
+                  <span>{option}</span>
                 </Label>
               </FormGroup>
             ))}
+            {field.showOtherOption && (
+              <FormGroup check className="mb-2">
+                <Label check className="d-flex align-items-center">
+                  <Input
+                    type="radio"
+                    name={fieldKey}
+                    value="Other"
+                    checked={value && value.startsWith('Other')}
+                    onChange={(e) => handleConditionalFieldChange('Other: ', 'text')}
+                    className="me-2"
+                  />
+                  <span className="me-2">Other:</span>
+                  {value && value.startsWith('Other') && (
+                    <Input
+                      type="text"
+                      size="sm"
+                      placeholder="Please specify..."
+                      value={value.replace('Other: ', '')}
+                      onChange={(e) => handleConditionalFieldChange(`Other: ${e.target.value}`, 'text')}
+                      style={{ width: '150px' }}
+                    />
+                  )}
+                </Label>
+              </FormGroup>
+            )}
           </div>
         );
 
       case 'checkbox':
+      case 'multiple-select':
         return (
           <div>
             {field.options && field.options.map((option, index) => {
               const currentValues = value ? value.split(',').map(v => v.trim()) : [];
               return (
                 <FormGroup check key={index} className="mb-2">
-                  <Label check>
+                  <Label check className="d-flex align-items-center">
                     <Input
                       type="checkbox"
                       value={option}
@@ -1122,8 +2577,9 @@ const FormSubmissions = () => {
                         
                         handleConditionalFieldChange(newValues.join(','), 'text');
                       }}
+                      className="me-2"
                     />
-                    <span className="ms-2">{option}</span>
+                    <span>{option}</span>
                   </Label>
                 </FormGroup>
               );
@@ -1132,32 +2588,109 @@ const FormSubmissions = () => {
         );
 
       case 'boolean':
+      case 'yes-no':
         return (
           <div>
             <FormGroup check className="mb-2">
-              <Label check>
+              <Label check className="d-flex align-items-center">
                 <Input
                   type="radio"
                   name={fieldKey}
                   value="true"
                   checked={value === 'true' || value === true}
                   onChange={(e) => handleConditionalFieldChange(true, 'boolean')}
+                  className="me-2"
                 />
-                <span className="ms-2">Yes</span>
+                <span>{field.yesLabel || 'Yes'}</span>
               </Label>
             </FormGroup>
             <FormGroup check className="mb-2">
-              <Label check>
+              <Label check className="d-flex align-items-center">
                 <Input
                   type="radio"
                   name={fieldKey}
                   value="false"
                   checked={value === 'false' || value === false}
                   onChange={(e) => handleConditionalFieldChange(false, 'boolean')}
+                  className="me-2"
                 />
-                <span className="ms-2">No</span>
+                <span>{field.noLabel || 'No'}</span>
               </Label>
             </FormGroup>
+          </div>
+        );
+
+      case 'file':
+        return (
+          <div>
+            <Input
+              type="file"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  handleConditionalFieldChange(file.name, 'file_url');
+                  console.log('Conditional field file selected:', file);
+                }
+              }}
+              invalid={!!hasError}
+              accept={field.acceptedFileTypes || "*/*"}
+            />
+            {field.maxFileSize && (
+              <small className="text-muted mt-1 d-block">
+                Max file size: {field.maxFileSize}MB
+              </small>
+            )}
+            {value && (
+              <div className="mt-1">
+                <small className="text-success">
+                  <i className="fa fa-check-circle me-1"></i>
+                  File: {value}
+                </small>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'grid':
+        const gridRows = field.gridRows || [];
+        const gridColumns = field.gridColumns || [];
+        const gridValues = value ? JSON.parse(value || '{}') : {};
+        
+        return (
+          <div className="table-responsive">
+            <table className="table table-sm table-bordered">
+              <thead>
+                <tr>
+                  <th style={{ width: '30%' }}></th>
+                  {gridColumns.map((column, index) => (
+                    <th key={index} className="text-center small" style={{ width: `${70/gridColumns.length}%` }}>
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {gridRows.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    <td className="fw-bold small">{row}</td>
+                    {gridColumns.map((column, colIndex) => (
+                      <td key={colIndex} className="text-center">
+                        <Input
+                          type="radio"
+                          name={`${fieldKey}_${rowIndex}`}
+                          value={column}
+                          checked={gridValues[row] === column}
+                          onChange={(e) => {
+                            const newGridValues = { ...gridValues, [row]: e.target.value };
+                            handleConditionalFieldChange(JSON.stringify(newGridValues), 'text');
+                          }}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         );
 
@@ -1328,88 +2861,471 @@ const FormSubmissions = () => {
                     )}
                   </div>
 
-                  {formItems.map((item, index) => (
-                    <div key={item.uuid} className="mb-4 p-3 border rounded">
-                      <div className="mb-3">
-                        <h6 className="mb-1">
-                          {index + 1}. {item.question}
-                          {item.required && <span className="text-danger"> *</span>}
-                        </h6>
-                        <div className="d-flex gap-2 mb-2">
-                          <small className="badge bg-secondary">
-                            Type: {item.item_type}
-                          </small>
-                          {item.required && (
-                            <small className="badge bg-warning text-dark">
-                              Required
-                            </small>
-                          )}
-                          {item.item_type === 'select' && item.conditional_fields && (
-                            <small className="badge bg-info text-dark">
-                              Has Conditional Fields
-                            </small>
-                          )}
-                          {responses[item.uuid] && (
-                            <small className="badge bg-success">
-                              Value Type: {responses[item.uuid].valueType}
-                            </small>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <FormGroup>
-                        {renderFormField(item)}
-                        {validationErrors[item.uuid] && (
-                          <div className="text-danger mt-1">
-                            <small>{validationErrors[item.uuid]}</small>
-                          </div>
-                        )}
-                      </FormGroup>
-                    </div>
-                  ))}
-
-                  {/* Debug Information - Show what will be submitted */}
-                  {Object.keys(responses).length > 0 && (
-                    <div className="mb-4 p-3 border rounded bg-light">
-                      <h6 className="mb-3">
-                        <i className="fa fa-bug me-2"></i>
-                        Debug: Data to be submitted
+                  {/* Reorder Mode Toggle */}
+                  <div className="mb-4 d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                    <div>
+                      <h6 className="mb-1 text-primary">
+                        <i className="fa fa-list me-2"></i>
+                        Form Questions
+                        <span className="badge bg-primary ms-2">
+                          {formItems.filter(item => !['section-header', 'page-break'].includes(item.item_type)).length} Questions
+                        </span>
                       </h6>
-                      <div className="small">
-                        <strong>User Info:</strong>
-                        <ul className="mb-2">
-                          <li>User UUID: {user?.uuid || 'Not available'}</li>
-                          <li>Country UUID: {user?.country_uuid || 'Not available'}</li>
-                          <li>Province UUID: {user?.province_uuid || 'Not available'}</li>
-                          <li>Area UUID: {user?.area_uuid || 'Not available'}</li>
-                        </ul>
-                        <strong>GPS Coordinates:</strong>
-                        <ul className="mb-2">
-                          <li>Latitude: {gpsCoordinates.latitude || 'Not captured'}</li>
-                          <li>Longitude: {gpsCoordinates.longitude || 'Not captured'}</li>
-                        </ul>
-                        <strong>Form Responses:</strong>
-                        <ul>
-                          {Object.entries(responses).map(([key, data]) => (
-                            <li key={key}>
-                              <strong>{key}:</strong> {JSON.stringify(data.value)} 
-                              <span className="text-muted"> ({data.valueType})</span>
-                            </li>
-                          ))}
-                        </ul>
+                      <small className="text-muted">
+                        {isReorderMode 
+                          ? 'Drag and drop questions to reorder them' 
+                          : 'Click "Reorder Questions" to rearrange the form'
+                        }
+                      </small>
+                    </div>
+                    <Button
+                      color={isReorderMode ? 'success' : 'info'}
+                      className={`reorder-toggle-btn ${isReorderMode ? 'active' : ''}`}
+                      onClick={toggleReorderMode}
+                    >
+                      <i className={`fa ${isReorderMode ? 'fa-check' : 'fa-arrows-v'} me-2`}></i>
+                      {isReorderMode ? 'Finish Reordering' : 'Reorder Questions'}
+                    </Button>
+                  </div>
+
+                  {/* Form Questions with Drag and Drop */}
+                  <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+                    <Droppable droppableId="form-questions" type="question">
+                      {(provided, snapshot) => (
+                        <div
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className={`droppable-area ${snapshot.isDraggingOver ? 'drag-over' : ''} ${isReorderMode ? 'reorder-mode' : ''}`}
+                        >
+                          {formItems.map((item, index) => {
+                            // Skip section headers and page breaks from numbering but still render them
+                            const isDisplayItem = ['section-header', 'page-break'].includes(item.item_type);
+                            const displayIndex = isDisplayItem ? null : 
+                              formItems.slice(0, index).filter(prevItem => 
+                                !['section-header', 'page-break'].includes(prevItem.item_type)
+                              ).length + 1;
+
+                            // Parse additional options for styling
+                            let additionalOptions = {};
+                            try {
+                              if (item.additional_options) {
+                                additionalOptions = JSON.parse(item.additional_options);
+                              }
+                            } catch (error) {
+                              console.warn('Error parsing additional options for display:', error);
+                            }
+
+                            // Get field type color for professional display
+                            const getFieldTypeColor = (type) => {
+                              const colorMap = {
+                                'text': 'primary',
+                                'paragraph': 'primary', 
+                                'textarea': 'primary',
+                                'number': 'success',
+                                'integer': 'success',
+                                'email': 'info',
+                                'url': 'info',
+                                'phone': 'info',
+                                'password': 'warning',
+                                'date': 'secondary',
+                                'time': 'secondary',
+                                'datetime-local': 'secondary',
+                                'color': 'warning',
+                                'range': 'success',
+                                'linear-scale': 'success',
+                                'rating': 'warning',
+                                'file': 'dark',
+                                'image': 'dark',
+                                'camera': 'dark',
+                                'location': 'info',
+                                'select': 'primary',
+                                'dropdown': 'primary',
+                                'radio': 'primary',
+                                'multiple-choice': 'primary',
+                                'checkbox': 'primary',
+                                'multiple-select': 'primary',
+                                'boolean': 'secondary',
+                                'yes-no': 'secondary',
+                                'grid': 'info',
+                                'checkbox-grid': 'info',
+                                'section-header': 'dark',
+                                'page-break': 'dark'
+                              };
+                              return colorMap[type] || 'secondary';
+                            };
+
+                            const fieldTypeColor = getFieldTypeColor(item.item_type);
+
+                            return (
+                              <Draggable 
+                                key={item.uuid} 
+                                draggableId={item.uuid} 
+                                index={index}
+                                isDragDisabled={!isReorderMode}
+                              >
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    className={`mb-4 ${isDisplayItem ? 'section-item' : 'form-field-item'} draggable-field ${snapshot.isDragging ? 'dragging' : ''}`}
+                                  >
+                                    {isDisplayItem ? (
+                                      // Special rendering for section headers and page breaks
+                                      <div className="section-header-container">
+                                        {isReorderMode && (
+                                          <div className="d-flex align-items-center mb-2">
+                                            <div {...provided.dragHandleProps} className="drag-handle">
+                                              <i className="fa fa-grip-vertical"></i>
+                                            </div>
+                                            <span className="badge bg-dark ms-2">Section Element</span>
+                                          </div>
+                                        )}
+                                        {renderFormField(item)}
+                                      </div>
+                                    ) : (
+                                      // Standard form field rendering
+                                      <div className="p-4 border rounded-3 shadow-sm bg-white position-relative">
+                                        {/* Drag Handle for Reorder Mode */}
+                                        {isReorderMode && (
+                                          <div className="d-flex align-items-center mb-3 reorder-header">
+                                            <div {...provided.dragHandleProps} className="drag-handle">
+                                              <i className="fa fa-grip-vertical"></i>
+                                            </div>
+                                            <span className="badge bg-info ms-2">
+                                              <i className="fa fa-arrows-v me-1"></i>
+                                              Drag to Reorder
+                                            </span>
+                                          </div>
+                                        )}
+
+                                        {/* Field Header */}
+                                        <div className="field-header mb-3">
+                                          <div className="d-flex justify-content-between align-items-start mb-2">
+                                            <div className="flex-grow-1">
+                                              <h6 className="mb-1 fw-bold text-dark">
+                                                <span className="field-number me-2 badge bg-light text-dark rounded-pill">
+                                                  {displayIndex}
+                                                </span>
+                                                {item.question}
+                                                {item.required && (
+                                                  <span className="text-danger ms-1" title="Required field">
+                                                    <i className="fa fa-asterisk" style={{ fontSize: '0.7rem' }}></i>
+                                                  </span>
+                                                )}
+                                              </h6>
+                                              {item.description && (
+                                                <p className="text-muted small mb-2" style={{ fontStyle: 'italic' }}>
+                                                  {item.description}
+                                                </p>
+                                              )}
+                                            </div>
+                                          </div>
+                                          
+                                          {/* Field Type Badges */}
+                                          <div className="d-flex flex-wrap gap-2 mb-3">
+                                            <span className={`badge bg-${fieldTypeColor} badge-field-type`}>
+                                              <i className="fa fa-tag me-1"></i>
+                                              {item.item_type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                            </span>
+                                            
+                                            {item.required && (
+                                              <span className="badge bg-danger badge-required">
+                                                <i className="fa fa-exclamation-circle me-1"></i>
+                                                Required
+                                              </span>
+                                            )}
+                                            
+                                            {item.item_type === 'select' && item.conditional_fields && (
+                                              <span className="badge bg-info badge-conditional">
+                                                <i className="fa fa-code-branch me-1"></i>
+                                                Has Conditional Logic
+                                              </span>
+                                            )}
+                                            
+                                            {responses[item.uuid] && (
+                                              <span className="badge bg-success badge-answered">
+                                                <i className="fa fa-check-circle me-1"></i>
+                                                Answered ({responses[item.uuid].valueType})
+                                              </span>
+                                            )}
+                                            
+                                            {additionalOptions.maxLength && (
+                                              <span className="badge bg-secondary badge-limit">
+                                                <i className="fa fa-ruler me-1"></i>
+                                                Max: {additionalOptions.maxLength}
+                                              </span>
+                                            )}
+                                            
+                                            {(additionalOptions.min !== undefined || additionalOptions.max !== undefined) && (
+                                              <span className="badge bg-secondary badge-range">
+                                                <i className="fa fa-arrows-h me-1"></i>
+                                                Range: {additionalOptions.min || 0} - {additionalOptions.max || '∞'}
+                                              </span>
+                                            )}
+
+                                            {additionalOptions.showOtherOption && (
+                                              <span className="badge bg-warning text-dark badge-other">
+                                                <i className="fa fa-plus-circle me-1"></i>
+                                                Has "Other" Option
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Field Input */}
+                                        <FormGroup className="field-input-container">
+                                          {renderFormField(item)}
+                                          {validationErrors[item.uuid] && (
+                                            <div className="field-error mt-2 p-2 bg-danger bg-opacity-10 border border-danger rounded">
+                                              <small className="text-danger fw-bold">
+                                                <i className="fa fa-exclamation-triangle me-1"></i>
+                                                {validationErrors[item.uuid]}
+                                              </small>
+                                            </div>
+                                          )}
+                                        </FormGroup>
+
+                                        {/* Field Value Preview */}
+                                        {responses[item.uuid] && responses[item.uuid].value && (
+                                          <div className="field-value-preview mt-3 p-2 bg-success bg-opacity-10 border border-success rounded">
+                                            <small className="text-success">
+                                              <i className="fa fa-eye me-1"></i>
+                                              <strong>Current Value:</strong> 
+                                              <span className="ms-1 font-monospace">
+                                                {typeof responses[item.uuid].value === 'object' 
+                                                  ? JSON.stringify(responses[item.uuid].value, null, 2)
+                                                  : responses[item.uuid].value.toString()
+                                                }
+                                              </span>
+                                              <span className="ms-2 badge bg-success bg-opacity-25 text-success">
+                                                {responses[item.uuid].valueType}
+                                              </span>
+                                            </small>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </Draggable>
+                            );
+                          })}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
+
+                  {/* Enhanced Debug Information */}
+                  {Object.keys(responses).length > 0 && (
+                    <div className="debug-section mb-4 p-4">
+                      <h6 className="mb-3 text-primary fw-bold">
+                        <i className="fa fa-bug me-2"></i>
+                        Form Submission Debug Information
+                        <span className="badge bg-primary ms-2">{Object.keys(responses).length} Response(s)</span>
+                      </h6>
+                      
+                      <Row>
+                        <Col md="6">
+                          <div className="debug-subsection mb-3">
+                            <h6 className="text-secondary mb-2">
+                              <i className="fa fa-user me-2"></i>User Information
+                            </h6>
+                            <ul className="list-unstyled small">
+                              <li className="mb-1">
+                                <strong>User UUID:</strong> 
+                                <code className="ms-2">{user?.uuid || 'Not available'}</code>
+                              </li>
+                              <li className="mb-1">
+                                <strong>Country:</strong> 
+                                <code className="ms-2">{user?.country_uuid || 'Not available'}</code>
+                              </li>
+                              <li className="mb-1">
+                                <strong>Province:</strong> 
+                                <code className="ms-2">{user?.province_uuid || 'Not available'}</code>
+                              </li>
+                              <li className="mb-1">
+                                <strong>Area:</strong> 
+                                <code className="ms-2">{user?.area_uuid || 'Not available'}</code>
+                              </li>
+                            </ul>
+                          </div>
+                        </Col>
+                        
+                        <Col md="6">
+                          <div className="debug-subsection mb-3">
+                            <h6 className="text-secondary mb-2">
+                              <i className="fa fa-map-marker me-2"></i>GPS Coordinates
+                            </h6>
+                            <ul className="list-unstyled small">
+                              <li className="mb-1">
+                                <strong>Latitude:</strong> 
+                                <code className="ms-2">{gpsCoordinates.latitude?.toFixed(6) || 'Not captured'}</code>
+                              </li>
+                              <li className="mb-1">
+                                <strong>Longitude:</strong> 
+                                <code className="ms-2">{gpsCoordinates.longitude?.toFixed(6) || 'Not captured'}</code>
+                              </li>
+                              <li className="mb-1">
+                                <strong>Status:</strong> 
+                                <span className={`ms-2 badge ${
+                                  gpsStatus === 'success' ? 'bg-success' : 
+                                  gpsStatus === 'error' ? 'bg-danger' : 
+                                  gpsStatus === 'requesting' ? 'bg-warning text-dark' : 'bg-secondary'
+                                }`}>
+                                  {gpsStatus.toUpperCase()}
+                                </span>
+                              </li>
+                            </ul>
+                          </div>
+                        </Col>
+                      </Row>
+
+                      <div className="debug-subsection">
+                        <h6 className="text-secondary mb-3">
+                          <i className="fa fa-database me-2"></i>Form Responses
+                          <small className="text-muted ms-2">({Object.keys(responses).length} fields)</small>
+                        </h6>
+                        
+                        <div className="response-grid">
+                          {Object.entries(responses).map(([key, data], index) => {
+                            const isConditionalField = key.includes('_');
+                            const fieldItem = formItems.find(item => item.uuid === key);
+                            const fieldType = fieldItem?.item_type || 'conditional';
+                            
+                            return (
+                              <div key={key} className="response-item mb-2 p-2 border rounded bg-white">
+                                <div className="d-flex justify-content-between align-items-start">
+                                  <div className="flex-grow-1">
+                                    <div className="d-flex align-items-center gap-2 mb-1">
+                                      <span className="badge bg-light text-dark response-index">
+                                        #{index + 1}
+                                      </span>
+                                      <span className={`badge ${isConditionalField ? 'bg-info' : 'bg-primary'}`}>
+                                        {isConditionalField ? 'Conditional' : fieldType}
+                                      </span>
+                                    </div>
+                                    <div className="response-content">
+                                      <strong className="text-dark">Field ID:</strong> 
+                                      <code className="ms-1 small">{key}</code>
+                                    </div>
+                                    <div className="response-content">
+                                      <strong className="text-dark">Value:</strong> 
+                                      <code className="ms-1 small text-success">
+                                        {typeof data.value === 'object' 
+                                          ? JSON.stringify(data.value) 
+                                          : data.value?.toString() || 'null'
+                                        }
+                                      </code>
+                                    </div>
+                                  </div>
+                                  <span className={`badge bg-${
+                                    data.valueType === 'number' ? 'success' : 
+                                    data.valueType === 'boolean' ? 'warning' : 
+                                    data.valueType === 'date' ? 'info' : 
+                                    data.valueType === 'file_url' ? 'dark' : 'secondary'
+                                  }`}>
+                                    {data.valueType}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  <div className="text-center mt-4">
+                  {/* Enhanced Submission Button */}
+                  <div className="submission-section text-center mt-5 p-4 bg-light rounded-3">
+                    <div className="mb-3">
+                      <h5 className="text-primary mb-2">
+                        <i className="fa fa-paper-plane me-2"></i>
+                        Ready to Submit?
+                      </h5>
+                      <p className="text-muted mb-0">
+                        {Object.keys(responses).length > 0 
+                          ? `You have answered ${Object.keys(responses).length} field${Object.keys(responses).length !== 1 ? 's' : ''}`
+                          : 'Please answer the form questions above'
+                        }
+                      </p>
+                    </div>
+                    
+                    <div className="submission-stats mb-3">
+                      <Row className="text-center">
+                        <Col md="3">
+                          <div className="stat-item">
+                            <div className="stat-number text-primary fw-bold fs-4">
+                              {formItems.filter(item => !['section-header', 'page-break'].includes(item.item_type)).length}
+                            </div>
+                            <div className="stat-label small text-muted">Total Questions</div>
+                          </div>
+                        </Col>
+                        <Col md="3">
+                          <div className="stat-item">
+                            <div className="stat-number text-success fw-bold fs-4">
+                              {Object.keys(responses).length}
+                            </div>
+                            <div className="stat-label small text-muted">Answered</div>
+                          </div>
+                        </Col>
+                        <Col md="3">
+                          <div className="stat-item">
+                            <div className="stat-number text-warning fw-bold fs-4">
+                              {formItems.filter(item => item.required && !['section-header', 'page-break'].includes(item.item_type)).length}
+                            </div>
+                            <div className="stat-label small text-muted">Required</div>
+                          </div>
+                        </Col>
+                        <Col md="3">
+                          <div className="stat-item">
+                            <div className="stat-number text-info fw-bold fs-4">
+                              {gpsStatus === 'success' ? '✓' : '○'}
+                            </div>
+                            <div className="stat-label small text-muted">GPS Status</div>
+                          </div>
+                        </Col>
+                      </Row>
+                    </div>
+                    
                     <Button 
                       type="submit" 
                       color="primary" 
                       size="lg"
+                      className="px-5 py-3 fw-bold"
                       disabled={submitting || formItems.length === 0}
+                      style={{
+                        background: submitting 
+                          ? 'linear-gradient(45deg, #6c757d, #495057)' 
+                          : 'linear-gradient(45deg, #007bff, #0056b3)',
+                        border: 'none',
+                        borderRadius: '25px',
+                        boxShadow: '0 4px 15px rgba(0, 123, 255, 0.3)',
+                        transform: submitting ? 'none' : 'translateY(-2px)',
+                        transition: 'all 0.3s ease'
+                      }}
                     >
-                      {submitting ? 'Submitting...' : 'Submit Form'}
+                      {submitting ? (
+                        <>
+                          <i className="fa fa-spinner fa-spin me-2"></i>
+                          Submitting Form...
+                        </>
+                      ) : (
+                        <>
+                          <i className="fa fa-paper-plane me-2"></i>
+                          Submit Form
+                        </>
+                      )}
                     </Button>
+                    
+                    {Object.keys(responses).length === 0 && (
+                      <div className="mt-3">
+                        <small className="text-muted">
+                          <i className="fa fa-info-circle me-1"></i>
+                          Complete the form above to enable submission
+                        </small>
+                      </div>
+                    )}
                   </div>
                 </Form>
               )}

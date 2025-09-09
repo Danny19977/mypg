@@ -1163,7 +1163,7 @@ export const formSubmissionService = {
   // Create form submission
   create: async (submissionData) => {
     try {
-      const response = await api.post('/form-submissions/create', submissionData);
+      const response = await api.post('/visite-harder/create', submissionData);
       return response.data;
     } catch (error) {
       throw new Error(`Failed to create form submission: ${error.response?.data?.message || error.message}`);
@@ -1275,7 +1275,7 @@ export const formResponseService = {
   // Create form response
   create: async (responseData) => {
     try {
-      const response = await api.post('/form-responses/create', responseData);
+      const response = await api.post('/visite-data/create', responseData);
       return response.data;
     } catch (error) {
       throw new Error(`Failed to create form response: ${error.response?.data?.message || error.message}`);
