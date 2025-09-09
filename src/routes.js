@@ -1,29 +1,14 @@
-// Import existing components we'll reuse
-import Dashboard from "views/Dashboard.js";
+// Import components used in routes
 import Maps from "views/Maps.js";
-
-// Import new components (we'll create these)
-import CreatePresent from "views/CreatePresent.js";
-import Visite from "views/Visite.js";
-import Activity from "views/Activity.js";
 import Country from "views/Country.js";
 import Province from "views/Province.js";
 import Area from "views/Area.js";
-import Sales from "views/Sales.js";
-import Dali from "views/Dali.js";
-
-// Import management components
-import Manager from "views/Manager.js";
 import User from "views/User.js";
 import UserLogs from "views/UserLogs.js";
 import Account from "views/Account.js";
 
-// Import API test component
-import ApiConnectionTest from "views/ApiConnectionTest.js";
-
-// Import new form management components
+// Import form management components
 import FormBuilder from "views/FormBuilder.js";
-import FormViewer from "views/FormViewer.js";
 import FormSubmissions from "views/FormSubmissions.js";
 import FormOptions from "views/FormOptions.js";
 
@@ -56,7 +41,7 @@ const dashboardRoutes = [
   {
     path: "/country",
     name: "Country",
-    icon: "nc-icon nc-globe",
+    icon: "fas fa-flag",
     component: Country,
     layout: "/admin",
     section: "territories"
@@ -76,22 +61,6 @@ const dashboardRoutes = [
     component: Area,
     layout: "/admin",
     section: "territories"
-  },
-  
-  // PRESENTS SECTION
-  {
-    heading: true,
-    name: "VISITE",
-    icon: "nc-icon nc-badge",
-    section: "presents"
-  },
-  {
-    path: "/present-on-field",
-    name: "Stroe-Info",
-    icon: "nc-icon nc-simple-add",
-    component: Visite,
-    layout: "/admin",
-    section: "presents"
   },
   
   // FORM MANAGEMENT SECTION
@@ -120,7 +89,7 @@ const dashboardRoutes = [
   {
     path: "/form-options",
     name: "Form Options",
-    icon: "nc-icon nc-settings-gear-65",
+    icon: "fas fa-cog",
     component: FormOptions,
     layout: "/admin",
     section: "forms"

@@ -2,12 +2,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Button, Card, Container, Row, Col } from "react-bootstrap";
 import AnimatedRangeCalendar from "../components/AnimatedRangeCalendar";
+import { formSubmissionService, formResponseService, formService } from "../services/apiServices";
 
 
 
 function Maps() {
   const mapRef = useRef(null);
-  const [presents, setPresents] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
   const [dateRange, setDateRange] = useState();
   const [showModal, setShowModal] = useState(false);
   const [tempRange, setTempRange] = useState();
@@ -16,22 +17,93 @@ function Maps() {
   // Advanced Search and Filter States
   const [searchText, setSearchText] = useState("");
   const [filterOptions, setFilterOptions] = useState({
-    code: [],
-    shop: [],
-    type: [],
-    moved: []
+    form: [],
+    user: [],
+    status: []
   });
-  const [filteredPresents, setFilteredPresents] = useState([]);
+  const [filteredSubmissions, setFilteredSubmissions] = useState([]);
   const [uniqueFilterValues, setUniqueFilterValues] = useState({
-    code: new Set(),
-    shop: new Set(),
-    type: new Set(),
-    moved: new Set()
+    form: new Set(),
+    user: new Set(),
+    status: new Set()
   });
   const [showFilters, setShowFilters] = useState(false);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [submissionResponses, setSubmissionResponses] = useState({});
+
+  // Helper function to extract GPS coordinates from form responses
+  const extractGPSFromResponses = (responses) => {
+    let latitude = null;
+    let longitude = null;
+    
+    if (responses && Array.isArray(responses)) {
+      responses.forEach(response => {
+        if (response.form_item && response.form_item.question) {
+          const question = response.form_item.question.toLowerCase();
+          const value = parseFloat(response.response_value);
+          
+          if (!isNaN(value)) {
+            if (question.includes('latitude') || question.includes('lat')) {
+              latitude = value;
+            } else if (question.includes('longitude') || question.includes('lng') || question.includes('long')) {
+              longitude = value;
+            }
+          }
+        }
+      });
+    }
+    
+    return { latitude, longitude };
+  };
+
+  // Helper function to get display name from form responses
+  const getDisplayDataFromResponses = (responses) => {
+    const data = {
+      name: 'Form Submission',
+      location: '',
+      images: [],
+      details: {}
+    };
+    
+    if (responses && Array.isArray(responses)) {
+      responses.forEach(response => {
+        if (response.form_item && response.form_item.question && response.response_value) {
+          const question = response.form_item.question.toLowerCase();
+          const value = response.response_value;
+          
+          // Extract name/title fields
+          if (question.includes('name') || question.includes('title') || question.includes('nom')) {
+            data.name = value;
+          }
+          
+          // Extract location fields
+          if (question.includes('location') || question.includes('address') || question.includes('lieu') || question.includes('adresse')) {
+            data.location = value;
+          }
+          
+          // Extract image fields
+          if (question.includes('image') || question.includes('photo') || question.includes('picture')) {
+            if (value && value.startsWith('http')) {
+              data.images.push({
+                url: value,
+                type: question.includes('inside') ? 'inside' : 
+                      question.includes('outside') ? 'outside' : 
+                      question.includes('report') ? 'report' : 'general',
+                label: response.form_item.question
+              });
+            }
+          }
+          
+          // Store all other details
+          data.details[response.form_item.question] = value;
+        }
+      });
+    }
+    
+    return data;
+  };
 
   // Function to calculate distance between two coordinates (Metric System)
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -84,55 +156,54 @@ function Maps() {
   // Advanced filtering and search logic
   useEffect(() => {
     // Extract unique values for filters
-    const codes = new Set();
-    const shops = new Set();
-    const types = new Set();
-    const movedOptions = new Set();
+    const forms = new Set();
+    const users = new Set();
+    const statuses = new Set();
     
-    presents.forEach(present => {
-      if (present.code) codes.add(present.code);
-      if (present.shop) shops.add(present.shop);
-      if (present.type) types.add(present.type);
-      if (present.moved !== undefined) movedOptions.add(present.moved.toString());
+    submissions.forEach(submission => {
+      if (submission.form && submission.form.title) forms.add(submission.form.title);
+      if (submission.user && submission.user.name) users.add(submission.user.name);
+      if (submission.status) statuses.add(submission.status);
     });
     
     setUniqueFilterValues({
-      code: codes,
-      shop: shops,
-      type: types,
-      moved: movedOptions
+      form: forms,
+      user: users,
+      status: statuses
     });
     
     // Apply filters and search
-    const filtered = presents.filter(present => {
+    const filtered = submissions.filter(submission => {
+      // Get responses for this submission
+      const responses = submissionResponses[submission.uuid] || [];
+      const displayData = getDisplayDataFromResponses(responses);
+      
       // Text search across multiple fields
       const searchTerms = searchText.toLowerCase().split(' ').filter(term => term.length > 0);
       const searchableText = [
-        present.name,
-        present.code,
-        present.shop,
-        present.type,
-        present.sup,
-        present.location
+        displayData.name,
+        submission.form?.title,
+        submission.user?.name,
+        submission.status,
+        displayData.location,
+        ...Object.values(displayData.details)
       ].filter(Boolean).join(' ').toLowerCase();
       
       const matchesSearch = searchTerms.length === 0 || 
         searchTerms.every(term => searchableText.includes(term));
       
       // Multi-select filter matching
-      const matchesCode = filterOptions.code.length === 0 || 
-        filterOptions.code.includes(present.code);
-      const matchesShop = filterOptions.shop.length === 0 || 
-        filterOptions.shop.includes(present.shop);
-      const matchesType = filterOptions.type.length === 0 || 
-        filterOptions.type.includes(present.type);
-      const matchesMoved = filterOptions.moved.length === 0 || 
-        filterOptions.moved.includes(present.moved?.toString());
+      const matchesForm = filterOptions.form.length === 0 || 
+        filterOptions.form.includes(submission.form?.title);
+      const matchesUser = filterOptions.user.length === 0 || 
+        filterOptions.user.includes(submission.user?.name);
+      const matchesStatus = filterOptions.status.length === 0 || 
+        filterOptions.status.includes(submission.status);
       
-      return matchesSearch && matchesCode && matchesShop && matchesType && matchesMoved;
+      return matchesSearch && matchesForm && matchesUser && matchesStatus;
     });
     
-    setFilteredPresents(filtered);
+    setFilteredSubmissions(filtered);
     
     // Update active filters count
     const activeCount = Object.values(filterOptions).reduce((acc, arr) => acc + arr.length, 0);
@@ -141,8 +212,11 @@ function Maps() {
     // Generate search suggestions
     if (searchText.length > 0) {
       const suggestions = new Set();
-      presents.forEach(present => {
-        [present.name, present.code, present.shop, present.type, present.sup]
+      submissions.forEach(submission => {
+        const responses = submissionResponses[submission.uuid] || [];
+        const displayData = getDisplayDataFromResponses(responses);
+        
+        [displayData.name, submission.form?.title, submission.user?.name, displayData.location]
           .filter(Boolean)
           .forEach(field => {
             if (field.toLowerCase().includes(searchText.toLowerCase()) && 
@@ -155,31 +229,55 @@ function Maps() {
     } else {
       setSearchSuggestions([]);
     }
-  }, [presents, searchText, filterOptions]);
+  }, [submissions, submissionResponses, searchText, filterOptions]);
 
   useEffect(() => {
-    async function fetchPresents() {
+    async function fetchSubmissions() {
       try {
         let data;
+        
+        // Get form submissions - use date range if specified
         if (dateRange?.start && dateRange?.end) {
           const start = dateRange.start.toString();
           const end = dateRange.end.toString();
-          data = await window.visiteService.getByDateRange(start, end);
+          const response = await formSubmissionService.getByDateRange(start, end);
+          if (response.status === 'success' && response.data) {
+            data = response.data;
+          }
         } else {
-          data = await window.visiteService.getAll();
+          const response = await formSubmissionService.getAll();
+          if (response.status === 'success' && response.data) {
+            data = response.data;
+          }
         }
-        if (!Array.isArray(data) && Array.isArray(data?.data)) {
-          data = data.data;
+        
+        if (!data) {
+          data = [];
         }
-        if (!Array.isArray(data)) data = [];
-        console.log("Presents data:", data); // Debug log to see data structure
-        setPresents(data);
+        
+        console.log("Form submissions data:", data);
+        setSubmissions(data);
+        
+        // Load responses for each submission
+        data.forEach(async (submission) => {
+          try {
+            const responsesData = await formResponseService.getBySubmission(submission.uuid);
+            if (responsesData.status === 'success') {
+              setSubmissionResponses(prev => ({
+                ...prev,
+                [submission.uuid]: responsesData.data
+              }));
+            }
+          } catch (error) {
+            console.error(`Error loading responses for submission ${submission.uuid}:`, error);
+          }
+        });
       } catch (err) {
-        console.error("Error fetching presents:", err);
-        setPresents([]);
+        console.error("Error fetching form submissions:", err);
+        setSubmissions([]);
       }
     }
-    fetchPresents();
+    fetchSubmissions();
   }, [dateRange]);
 
   useEffect(() => {
@@ -194,10 +292,26 @@ function Maps() {
     const allMarkers = [];
     let currentDistanceLine = null;
     
-    filteredPresents.forEach((present) => {
-      if (present.latitude && present.longitude) {
+    // Process form submissions to extract GPS coordinates
+    const submissionsWithGPS = filteredSubmissions
+      .map(submission => {
+        const responses = submissionResponses[submission.uuid] || [];
+        const { latitude, longitude } = extractGPSFromResponses(responses);
+        const displayData = getDisplayDataFromResponses(responses);
+        
+        return {
+          ...submission,
+          latitude,
+          longitude,
+          displayData
+        };
+      })
+      .filter(submission => submission.latitude !== null && submission.longitude !== null);
+    
+    submissionsWithGPS.forEach((submission) => {
+      if (submission.latitude && submission.longitude) {
         hasMarkers = true;
-        bounds.extend(new google.maps.LatLng(present.latitude, present.longitude));
+        bounds.extend(new google.maps.LatLng(submission.latitude, submission.longitude));
       }
     });
     
@@ -205,9 +319,9 @@ function Maps() {
     if (hasMarkers) {
       lat = bounds.getCenter().lat();
       lng = bounds.getCenter().lng();
-    } else if (presents.length > 0 && presents[0].latitude && presents[0].longitude) {
-      lat = presents[0].latitude;
-      lng = presents[0].longitude;
+    } else if (submissionsWithGPS.length > 0 && submissionsWithGPS[0].latitude && submissionsWithGPS[0].longitude) {
+      lat = submissionsWithGPS[0].latitude;
+      lng = submissionsWithGPS[0].longitude;
     }
     
     const myLatlng = new google.maps.LatLng(lat, lng);
@@ -220,18 +334,18 @@ function Maps() {
     const map = new google.maps.Map(mapRef.current, mapOptions);
     
     // Function to find nearest marker
-    const findNearestMarker = (clickedMarker, clickedPresent) => {
+    const findNearestMarker = (clickedMarker, clickedSubmission) => {
       let nearestMarker = null;
-      let nearestPresent = null;
+      let nearestSubmission = null;
       let shortestDistance = Infinity;
       
-      allMarkers.forEach(({ marker, present }) => {
-        if (marker !== clickedMarker && present.latitude && present.longitude) {
+      allMarkers.forEach(({ marker, submission }) => {
+        if (marker !== clickedMarker && submission.latitude && submission.longitude) {
           const distance = calculateDistance(
-            clickedPresent.latitude,
-            clickedPresent.longitude,
-            present.latitude,
-            present.longitude
+            clickedSubmission.latitude,
+            clickedSubmission.longitude,
+            submission.latitude,
+            submission.longitude
           );
           
           // Convert distance string to number for comparison
@@ -240,24 +354,24 @@ function Maps() {
           if (distanceNum < shortestDistance) {
             shortestDistance = distanceNum;
             nearestMarker = marker;
-            nearestPresent = present;
+            nearestSubmission = submission;
           }
         }
       });
       
-      return { nearestMarker, nearestPresent, distance: shortestDistance };
+      return { nearestMarker, nearestSubmission, distance: shortestDistance };
     };
     
     // Function to draw distance line
-    const drawDistanceLine = (marker1, present1, marker2, present2, distance) => {
+    const drawDistanceLine = (marker1, submission1, marker2, submission2, distance) => {
       // Remove existing distance line
       if (currentDistanceLine) {
         currentDistanceLine.setMap(null);
       }
       
       const lineCoordinates = [
-        { lat: parseFloat(present1.latitude), lng: parseFloat(present1.longitude) },
-        { lat: parseFloat(present2.latitude), lng: parseFloat(present2.longitude) }
+        { lat: parseFloat(submission1.latitude), lng: parseFloat(submission1.longitude) },
+        { lat: parseFloat(submission2.latitude), lng: parseFloat(submission2.longitude) }
       ];
       
       currentDistanceLine = new google.maps.Polyline({
@@ -270,8 +384,8 @@ function Maps() {
       });
       
       // Add distance label at midpoint
-      const midLat = (parseFloat(present1.latitude) + parseFloat(present2.latitude)) / 2;
-      const midLng = (parseFloat(present1.longitude) + parseFloat(present2.longitude)) / 2;
+      const midLat = (parseFloat(submission1.latitude) + parseFloat(submission2.latitude)) / 2;
+      const midLng = (parseFloat(submission1.longitude) + parseFloat(submission2.longitude)) / 2;
       
       const distanceLabel = new google.maps.InfoWindow({
         position: { lat: midLat, lng: midLng },
@@ -286,20 +400,20 @@ function Maps() {
     };
     
     // Place markers
-    filteredPresents.forEach((present) => {
-      if (present.latitude && present.longitude) {
-        const markerLatLng = new google.maps.LatLng(present.latitude, present.longitude);
+    submissionsWithGPS.forEach((submission) => {
+      if (submission.latitude && submission.longitude) {
+        const markerLatLng = new google.maps.LatLng(submission.latitude, submission.longitude);
         const marker = new google.maps.Marker({
           position: markerLatLng,
           map: map,
           animation: google.maps.Animation.DROP,
-          title: present.name || "Present",
+          title: submission.displayData.name || "Form Submission",
         });
         
         // Store marker reference
-        allMarkers.push({ marker, present });
+        allMarkers.push({ marker, submission });
         
-        let createdAtRaw = present.created_at || present.createdAt || present.CreatedAt || present.created || "";
+        let createdAtRaw = submission.created_at || "";
         let createdAt = "-";
         if (createdAtRaw) {
           const dateObj = new Date(createdAtRaw);
@@ -310,75 +424,69 @@ function Maps() {
           }
         }
         
-        // Debug: Log present data to see available fields
-        console.log("Present data for marker:", present);
+        // Debug: Log submission data to see available fields
+        console.log("Submission data for marker:", submission);
         
-        // Check for various image field names - image_inside should be the primary/first image
-        const primaryImage = present.image_inside || present.photo || present.image || present.image_1 || present.picture;
-        const outsideImage = present.image_outside || present.outside_image;
-        const reportImage = present.image_report;
-        const secondImage = present.image_2 || present.image2;
-        const thirdImage = present.image_3 || present.image3;
+        // Get images from form responses
+        const images = submission.displayData.images || [];
+        const primaryImage = images.find(img => img.type === 'inside') || images[0];
+        const otherImages = images.filter(img => img !== primaryImage);
         
         // Calculate distance from user location if available
         let distanceText = "";
-        if (userLocation && present.latitude && present.longitude) {
+        if (userLocation && submission.latitude && submission.longitude) {
           const distance = calculateDistance(
             userLocation.lat, 
             userLocation.lng, 
-            present.latitude, 
-            present.longitude
+            submission.latitude, 
+            submission.longitude
           );
           distanceText = `<tr><td style="padding:2px 0;width:30%;"><strong>Distance:</strong></td><td>${distance}</td></tr>`;
         }
+        
+        // Build details table
+        let detailsRows = '';
+        Object.entries(submission.displayData.details).forEach(([key, value]) => {
+          if (value && !key.toLowerCase().includes('latitude') && !key.toLowerCase().includes('longitude') && !key.toLowerCase().includes('image')) {
+            detailsRows += `<tr><td style="padding:2px 0;width:40%;"><strong>${key}:</strong></td><td>${value}</td></tr>`;
+          }
+        });
         
         const infoContent = `
           <div style='min-width:280px;'>
             <div class="images-container" style="position:relative;">
               ${primaryImage ? `
-                <img src='${primaryImage}' alt='Primary photo' class="primary-image" style='width:100%;height:150px;object-fit:cover;border-radius:8px;margin-bottom:8px;' onerror="this.style.display='none'" />
+                <img src='${primaryImage.url}' alt='${primaryImage.label}' class="primary-image" style='width:100%;height:150px;object-fit:cover;border-radius:8px;margin-bottom:8px;' onerror="this.style.display='none'" />
                 
-                ${outsideImage || reportImage || secondImage || thirdImage ? `
+                ${otherImages.length > 0 ? `
                   <div class="image-stack" style="position:absolute;top:5px;right:5px;display:flex;flex-direction:column;gap:4px;">
-                    ${outsideImage ? `
-                      <img src='${outsideImage}' alt='Outside' style='width:40px;height:40px;object-fit:cover;border-radius:4px;border:2px solid white;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);' 
-                        onclick="document.querySelector('.primary-image').src='${outsideImage}'" onerror="this.style.display='none'" />
-                    ` : ''}
-                    ${reportImage ? `
-                      <img src='${reportImage}' alt='Report' style='width:40px;height:40px;object-fit:cover;border-radius:4px;border:2px solid white;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);' 
-                        onclick="document.querySelector('.primary-image').src='${reportImage}'" onerror="this.style.display='none'" />
-                    ` : ''}
-                    ${secondImage ? `
-                      <img src='${secondImage}' alt='Additional' style='width:40px;height:40px;object-fit:cover;border-radius:4px;border:2px solid white;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);' 
-                        onclick="document.querySelector('.primary-image').src='${secondImage}'" onerror="this.style.display='none'" />
-                    ` : ''}
-                    ${thirdImage ? `
-                      <img src='${thirdImage}' alt='Additional' style='width:40px;height:40px;object-fit:cover;border-radius:4px;border:2px solid white;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);' 
-                        onclick="document.querySelector('.primary-image').src='${thirdImage}'" onerror="this.style.display='none'" />
-                    ` : ''}
+                    ${otherImages.map(img => `
+                      <img src='${img.url}' alt='${img.label}' style='width:40px;height:40px;object-fit:cover;border-radius:4px;border:2px solid white;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);' 
+                        onclick="document.querySelector('.primary-image').src='${img.url}'" onerror="this.style.display='none'" />
+                    `).join('')}
                   </div>
                 ` : ''}
               ` : `<div style='height:150px;background:#f5f5f5;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;color:#999;'>No Image Available</div>`}
             </div>
-            <strong>${present.name || "Present"}</strong><br/>
+            <strong>${submission.displayData.name}</strong><br/>
             <table style="width:100%;margin:8px 0;border-collapse:collapse;">
-              <tr><td style="padding:2px 0;width:30%;"><strong>Code:</strong></td><td>${present.code || "-"}</td></tr>
-              <tr><td style="padding:2px 0;"><strong>Shop:</strong></td><td>${present.shop || "-"}</td></tr>
-              <tr><td style="padding:2px 0;"><strong>Type:</strong></td><td>${present.type || "-"}</td></tr>
-              <tr><td style="padding:2px 0;"><strong>Moved:</strong></td><td>${present.moved ? "Yes" : "No"}</td></tr>
+              <tr><td style="padding:2px 0;width:30%;"><strong>Form:</strong></td><td>${submission.form?.title || "-"}</td></tr>
+              <tr><td style="padding:2px 0;"><strong>User:</strong></td><td>${submission.user?.name || "-"}</td></tr>
+              <tr><td style="padding:2px 0;"><strong>Status:</strong></td><td>${submission.status || "-"}</td></tr>
               ${distanceText}
-              <tr><td style="padding:2px 0;"><strong>Location:</strong></td><td>${present.location || "-"}</td></tr>
+              <tr><td style="padding:2px 0;"><strong>Location:</strong></td><td>${submission.displayData.location || "-"}</td></tr>
+              ${detailsRows}
             </table>
             <span style='color:#888;font-size:12px;'>Created: ${createdAt}</span>
             <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${present.latitude},${present.longitude}" 
+              <a href="https://www.google.com/maps/dir/?api=1&destination=${submission.latitude},${submission.longitude}" 
                  target="_blank" 
                  style="display:inline-block;background:#4285F4;color:white;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;box-shadow:0 2px 4px rgba(66,133,244,0.3);transition:all 0.2s;">
                  <span style="margin-right:6px;">🧭</span> Get Directions
               </a>
               ${userLocation ? `
                 <span style="font-size:11px;color:#666;background:#f5f5f5;padding:4px 8px;border-radius:4px;">
-                  📍 ${calculateDistance(userLocation.lat, userLocation.lng, present.latitude, present.longitude)} away
+                  📍 ${calculateDistance(userLocation.lat, userLocation.lng, submission.latitude, submission.longitude)} away
                 </span>
               ` : ''}
             </div>
@@ -388,16 +496,16 @@ function Maps() {
         
         marker.addListener("click", () => {
           // Find and draw line to nearest marker
-          const { nearestMarker, nearestPresent, distance } = findNearestMarker(marker, present);
+          const { nearestMarker, nearestSubmission, distance } = findNearestMarker(marker, submission);
           
-          if (nearestMarker && nearestPresent) {
+          if (nearestMarker && nearestSubmission) {
             const distanceStr = calculateDistance(
-              present.latitude,
-              present.longitude,
-              nearestPresent.latitude,
-              nearestPresent.longitude
+              submission.latitude,
+              submission.longitude,
+              nearestSubmission.latitude,
+              nearestSubmission.longitude
             );
-            drawDistanceLine(marker, present, nearestMarker, nearestPresent, distanceStr);
+            drawDistanceLine(marker, submission, nearestMarker, nearestSubmission, distanceStr);
           }
           
           // Open info window
@@ -437,7 +545,7 @@ function Maps() {
         currentDistanceLine.setMap(null);
       }
     };
-  }, [filteredPresents, userLocation]);
+  }, [filteredSubmissions, submissionResponses, userLocation]);
 
   return (
     <>
@@ -601,7 +709,7 @@ function Maps() {
                   </Col>
                   <Col md="4" className="text-end">
                     <span className="text-white fw-bold">
-                      📍 {filteredPresents.length} of {presents.length} markers
+                      📍 {filteredSubmissions.length} of {submissions.length} markers
                     </span>
                   </Col>
                 </Row>
@@ -610,12 +718,12 @@ function Maps() {
                 {showFilters && (
                   <div className="animate__animated animate__fadeIn">
                     <Row className="g-4">
-                      {/* Code Filter */}
-                      <Col md="3">
+                      {/* Form Filter */}
+                      <Col md="4">
                         <div className="filter-group">
                           <label className="form-label text-white fw-bold mb-2">
-                            💼 Code
-                            <span className="badge bg-light text-dark ms-2">{uniqueFilterValues.code.size}</span>
+                            � Form
+                            <span className="badge bg-light text-dark ms-2">{uniqueFilterValues.form.size}</span>
                           </label>
                           <div className="dropdown-container">
                             <div 
@@ -631,14 +739,14 @@ function Maps() {
                                 padding: "8px"
                               }}
                             >
-                              {filterOptions.code.length === 0 && (
+                              {filterOptions.form.length === 0 && (
                                 <div className="placeholder-text" style={{ color: "#999", padding: "8px", fontStyle: "italic" }}>
-                                  Select codes...
+                                  Select forms...
                                 </div>
                               )}
-                              {[...uniqueFilterValues.code].sort().map(code => (
+                              {[...uniqueFilterValues.form].sort().map(form => (
                                 <div 
-                                  key={code}
+                                  key={form}
                                   className="filter-option"
                                   style={{
                                     display: "flex",
@@ -648,28 +756,28 @@ function Maps() {
                                     borderRadius: "8px",
                                     cursor: "pointer",
                                     transition: "all 0.2s",
-                                    backgroundColor: filterOptions.code.includes(code) ? "#e3f2fd" : "transparent"
+                                    backgroundColor: filterOptions.form.includes(form) ? "#e3f2fd" : "transparent"
                                   }}
                                   onClick={() => {
-                                    const newCodes = filterOptions.code.includes(code)
-                                      ? filterOptions.code.filter(c => c !== code)
-                                      : [...filterOptions.code, code];
-                                    setFilterOptions({...filterOptions, code: newCodes});
+                                    const newForms = filterOptions.form.includes(form)
+                                      ? filterOptions.form.filter(f => f !== form)
+                                      : [...filterOptions.form, form];
+                                    setFilterOptions({...filterOptions, form: newForms});
                                   }}
                                   onMouseEnter={(e) => {
-                                    if (!filterOptions.code.includes(code)) {
+                                    if (!filterOptions.form.includes(form)) {
                                       e.target.style.backgroundColor = "#f5f5f5";
                                     }
                                   }}
                                   onMouseLeave={(e) => {
-                                    if (!filterOptions.code.includes(code)) {
+                                    if (!filterOptions.form.includes(form)) {
                                       e.target.style.backgroundColor = "transparent";
                                     }
                                   }}
                                 >
                                   <input
                                     type="checkbox"
-                                    checked={filterOptions.code.includes(code)}
+                                    checked={filterOptions.form.includes(form)}
                                     onChange={() => {}}
                                     style={{ 
                                       marginRight: "8px", 
@@ -677,7 +785,7 @@ function Maps() {
                                       transform: "scale(1.2)"
                                     }}
                                   />
-                                  <span style={{ flex: 1, fontSize: "14px", fontWeight: "500" }}>{code}</span>
+                                  <span style={{ flex: 1, fontSize: "14px", fontWeight: "500" }}>{form}</span>
                                   <span 
                                     className="badge"
                                     style={{ 
@@ -687,7 +795,7 @@ function Maps() {
                                       padding: "2px 6px"
                                     }}
                                   >
-                                    {presents.filter(p => p.code === code).length}
+                                    {submissions.filter(s => s.form?.title === form).length}
                                   </span>
                                 </div>
                               ))}
@@ -696,12 +804,12 @@ function Maps() {
                         </div>
                       </Col>
 
-                      {/* Shop Filter */}
-                      <Col md="3">
+                      {/* User Filter */}
+                      <Col md="4">
                         <div className="filter-group">
                           <label className="form-label text-white fw-bold mb-2">
-                            🏪 Shop
-                            <span className="badge bg-light text-dark ms-2">{uniqueFilterValues.shop.size}</span>
+                            👤 User
+                            <span className="badge bg-light text-dark ms-2">{uniqueFilterValues.user.size}</span>
                           </label>
                           <div className="dropdown-container">
                             <div 
@@ -717,14 +825,14 @@ function Maps() {
                                 padding: "8px"
                               }}
                             >
-                              {filterOptions.shop.length === 0 && (
+                              {filterOptions.user.length === 0 && (
                                 <div className="placeholder-text" style={{ color: "#999", padding: "8px", fontStyle: "italic" }}>
-                                  Select shops...
+                                  Select users...
                                 </div>
                               )}
-                              {[...uniqueFilterValues.shop].sort().map(shop => (
+                              {[...uniqueFilterValues.user].sort().map(user => (
                                 <div 
-                                  key={shop}
+                                  key={user}
                                   className="filter-option"
                                   style={{
                                     display: "flex",
@@ -734,28 +842,28 @@ function Maps() {
                                     borderRadius: "8px",
                                     cursor: "pointer",
                                     transition: "all 0.2s",
-                                    backgroundColor: filterOptions.shop.includes(shop) ? "#e8f5e8" : "transparent"
+                                    backgroundColor: filterOptions.user.includes(user) ? "#e8f5e8" : "transparent"
                                   }}
                                   onClick={() => {
-                                    const newShops = filterOptions.shop.includes(shop)
-                                      ? filterOptions.shop.filter(s => s !== shop)
-                                      : [...filterOptions.shop, shop];
-                                    setFilterOptions({...filterOptions, shop: newShops});
+                                    const newUsers = filterOptions.user.includes(user)
+                                      ? filterOptions.user.filter(u => u !== user)
+                                      : [...filterOptions.user, user];
+                                    setFilterOptions({...filterOptions, user: newUsers});
                                   }}
                                   onMouseEnter={(e) => {
-                                    if (!filterOptions.shop.includes(shop)) {
+                                    if (!filterOptions.user.includes(user)) {
                                       e.target.style.backgroundColor = "#f5f5f5";
                                     }
                                   }}
                                   onMouseLeave={(e) => {
-                                    if (!filterOptions.shop.includes(shop)) {
+                                    if (!filterOptions.user.includes(user)) {
                                       e.target.style.backgroundColor = "transparent";
                                     }
                                   }}
                                 >
                                   <input
                                     type="checkbox"
-                                    checked={filterOptions.shop.includes(shop)}
+                                    checked={filterOptions.user.includes(user)}
                                     onChange={() => {}}
                                     style={{ 
                                       marginRight: "8px", 
@@ -763,7 +871,7 @@ function Maps() {
                                       transform: "scale(1.2)"
                                     }}
                                   />
-                                  <span style={{ flex: 1, fontSize: "14px", fontWeight: "500" }}>{shop}</span>
+                                  <span style={{ flex: 1, fontSize: "14px", fontWeight: "500" }}>{user}</span>
                                   <span 
                                     className="badge"
                                     style={{ 
@@ -773,7 +881,7 @@ function Maps() {
                                       padding: "2px 6px"
                                     }}
                                   >
-                                    {presents.filter(p => p.shop === shop).length}
+                                    {submissions.filter(s => s.user?.name === user).length}
                                   </span>
                                 </div>
                               ))}
@@ -782,12 +890,12 @@ function Maps() {
                         </div>
                       </Col>
 
-                      {/* Type Filter */}
-                      <Col md="3">
+                      {/* Status Filter */}
+                      <Col md="4">
                         <div className="filter-group">
                           <label className="form-label text-white fw-bold mb-2">
-                            📋 Type
-                            <span className="badge bg-light text-dark ms-2">{uniqueFilterValues.type.size}</span>
+                            � Status
+                            <span className="badge bg-light text-dark ms-2">{uniqueFilterValues.status.size}</span>
                           </label>
                           <div className="dropdown-container">
                             <div 
@@ -803,100 +911,14 @@ function Maps() {
                                 padding: "8px"
                               }}
                             >
-                              {filterOptions.type.length === 0 && (
-                                <div className="placeholder-text" style={{ color: "#999", padding: "8px", fontStyle: "italic" }}>
-                                  Select types...
-                                </div>
-                              )}
-                              {[...uniqueFilterValues.type].sort().map(type => (
-                                <div 
-                                  key={type}
-                                  className="filter-option"
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    padding: "6px 8px",
-                                    margin: "2px 0",
-                                    borderRadius: "8px",
-                                    cursor: "pointer",
-                                    transition: "all 0.2s",
-                                    backgroundColor: filterOptions.type.includes(type) ? "#fff3e0" : "transparent"
-                                  }}
-                                  onClick={() => {
-                                    const newTypes = filterOptions.type.includes(type)
-                                      ? filterOptions.type.filter(t => t !== type)
-                                      : [...filterOptions.type, type];
-                                    setFilterOptions({...filterOptions, type: newTypes});
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    if (!filterOptions.type.includes(type)) {
-                                      e.target.style.backgroundColor = "#f5f5f5";
-                                    }
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    if (!filterOptions.type.includes(type)) {
-                                      e.target.style.backgroundColor = "transparent";
-                                    }
-                                  }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={filterOptions.type.includes(type)}
-                                    onChange={() => {}}
-                                    style={{ 
-                                      marginRight: "8px", 
-                                      accentColor: "#ff9800",
-                                      transform: "scale(1.2)"
-                                    }}
-                                  />
-                                  <span style={{ flex: 1, fontSize: "14px", fontWeight: "500" }}>{type}</span>
-                                  <span 
-                                    className="badge"
-                                    style={{ 
-                                      backgroundColor: "#ff9800", 
-                                      color: "white",
-                                      fontSize: "11px",
-                                      padding: "2px 6px"
-                                    }}
-                                  >
-                                    {presents.filter(p => p.type === type).length}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </Col>
-
-                      {/* Moved Filter */}
-                      <Col md="3">
-                        <div className="filter-group">
-                          <label className="form-label text-white fw-bold mb-2">
-                            📦 Status
-                            <span className="badge bg-light text-dark ms-2">{uniqueFilterValues.moved.size}</span>
-                          </label>
-                          <div className="dropdown-container">
-                            <div 
-                              className="custom-dropdown"
-                              style={{
-                                backgroundColor: "white",
-                                borderRadius: "12px",
-                                border: "2px solid rgba(255,255,255,0.3)",
-                                boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
-                                minHeight: "45px",
-                                maxHeight: "200px",
-                                overflowY: "auto",
-                                padding: "8px"
-                              }}
-                            >
-                              {filterOptions.moved.length === 0 && (
+                              {filterOptions.status.length === 0 && (
                                 <div className="placeholder-text" style={{ color: "#999", padding: "8px", fontStyle: "italic" }}>
                                   Select status...
                                 </div>
                               )}
-                              {[...uniqueFilterValues.moved].sort().map(moved => (
+                              {[...uniqueFilterValues.status].sort().map(status => (
                                 <div 
-                                  key={moved}
+                                  key={status}
                                   className="filter-option"
                                   style={{
                                     display: "flex",
@@ -906,49 +928,44 @@ function Maps() {
                                     borderRadius: "8px",
                                     cursor: "pointer",
                                     transition: "all 0.2s",
-                                    backgroundColor: filterOptions.moved.includes(moved) 
-                                      ? (moved === "true" ? "#e8f5e8" : "#ffebee") 
-                                      : "transparent",
-                                    border: filterOptions.moved.includes(moved) 
-                                      ? (moved === "true" ? "2px solid #4caf50" : "2px solid #f44336")
-                                      : "2px solid transparent"
+                                    backgroundColor: filterOptions.status.includes(status) ? "#fff3e0" : "transparent"
                                   }}
                                   onClick={() => {
-                                    const newMoved = filterOptions.moved.includes(moved)
-                                      ? filterOptions.moved.filter(m => m !== moved)
-                                      : [...filterOptions.moved, moved];
-                                    setFilterOptions({...filterOptions, moved: newMoved});
+                                    const newStatus = filterOptions.status.includes(status)
+                                      ? filterOptions.status.filter(s => s !== status)
+                                      : [...filterOptions.status, status];
+                                    setFilterOptions({...filterOptions, status: newStatus});
                                   }}
                                   onMouseEnter={(e) => {
-                                    if (!filterOptions.moved.includes(moved)) {
+                                    if (!filterOptions.status.includes(status)) {
                                       e.target.style.backgroundColor = "#f5f5f5";
                                       e.target.style.transform = "scale(1.02)";
                                     }
                                   }}
                                   onMouseLeave={(e) => {
-                                    if (!filterOptions.moved.includes(moved)) {
+                                    if (!filterOptions.status.includes(status)) {
                                       e.target.style.backgroundColor = "transparent";
                                       e.target.style.transform = "scale(1)";
                                     }
                                   }}
                                 >
                                   <div style={{ marginRight: "12px", fontSize: "18px" }}>
-                                    {moved === "true" ? "✅" : "❌"}
+                                    {status === "completed" ? "✅" : status === "pending" ? "⏳" : "📋"}
                                   </div>
                                   <span style={{ flex: 1, fontSize: "14px", fontWeight: "600" }}>
-                                    {moved === "true" ? "Moved" : "Not Moved"}
+                                    {status.charAt(0).toUpperCase() + status.slice(1)}
                                   </span>
                                   <span 
                                     className="badge"
                                     style={{ 
-                                      backgroundColor: moved === "true" ? "#4caf50" : "#f44336", 
+                                      backgroundColor: "#ff9800", 
                                       color: "white",
                                       fontSize: "12px",
                                       padding: "4px 8px",
                                       borderRadius: "12px"
                                     }}
                                   >
-                                    {presents.filter(p => p.moved?.toString() === moved).length}
+                                    {submissions.filter(s => s.status === status).length}
                                   </span>
                                 </div>
                               ))}
@@ -967,7 +984,7 @@ function Maps() {
                             size="sm"
                             onClick={() => {
                               setSearchText("");
-                              setFilterOptions({code: [], shop: [], type: [], moved: []});
+                              setFilterOptions({form: [], user: [], status: []});
                               setShowSuggestions(false);
                             }}
                             style={{ 
@@ -1016,7 +1033,7 @@ function Maps() {
                                 e.target.style.boxShadow = "0 4px 15px rgba(0,0,0,0.1)";
                               }}
                             >
-                              ⚡ {filteredPresents.length} Results Found
+                              ⚡ {filteredSubmissions.length} Results Found
                             </Button>
                           )}
                         </div>

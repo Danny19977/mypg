@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { 
   territoryService, 
-  authService,      // Added auth service
-  salesService, 
-  deliService,      // Updated from daliService
-  dashboardService,
-  userService,      // Added user service
-  visiteService     // Added visite service
+  authService,
+  userService,
+  formService,
+  formSubmissionService,
+  formOptionService
 } from '../services/apiServices';
 
 // ============================================================================
@@ -41,61 +40,6 @@ export const useApi = (apiFunction, dependencies = []) => {
   return { data, loading, error, refetch: fetchData };
 };
 
-// ============================================================================
-// VISITE HOOKS (Store Visits)
-// ============================================================================
-
-// Hook for creating/updating visites
-export const useVisiteActions = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const createVisite = async (visiteData) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await visiteService.create(visiteData);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateVisite = async (uuid, visiteData) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await visiteService.update(uuid, visiteData);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteVisite = async (uuid) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await visiteService.delete(uuid);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return { createVisite, updateVisite, deleteVisite, loading, error };
-};
-
-// ============================================================================
 // ============================================================================
 // TERRITORY HOOKS
 // ============================================================================
@@ -171,80 +115,6 @@ export const useTerritoryActions = () => {
 };
 
 // ============================================================================
-// ACTIVITY HOOKS - Replaced with DELI hooks
-// ============================================================================
-
-export const useDelis = () => {
-  return useApi(deliService.getAll);
-};
-
-export const useDelisByArea = (areaUuid) => {
-  return useApi(() => deliService.getByArea(areaUuid), [areaUuid]);
-};
-
-export const useDelisByProvince = (provinceUuid) => {
-  return useApi(() => deliService.getByProvince(provinceUuid), [provinceUuid]);
-};
-
-export const useDelisByCountry = (countryUuid) => {
-  return useApi(() => deliService.getByCountry(countryUuid), [countryUuid]);
-};
-
-// ============================================================================
-// SALES HOOKS
-// ============================================================================
-
-export const useSales = () => {
-  return useApi(salesService.getAll);
-};
-
-export const useSalesByArea = (areaUuid) => {
-  return useApi(() => salesService.getByArea(areaUuid), [areaUuid]);
-};
-
-export const useSalesByProvince = (provinceUuid) => {
-  return useApi(() => salesService.getByProvince(provinceUuid), [provinceUuid]);
-};
-
-export const useSalesByCountry = (countryUuid) => {
-  return useApi(() => salesService.getByCountry(countryUuid), [countryUuid]);
-};
-
-// Sales actions hook
-export const useSalesActions = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const createSale = async (saleData) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await salesService.create(saleData);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return { createSale, loading, error };
-};
-
-// ============================================================================
-// DELI HOOKS (Updated from DALI hooks)
-// ============================================================================
-
-export const useDeli = () => {
-  return useApi(deliService.getAll);
-};
-
-export const useDeliById = (uuid) => {
-  return useApi(() => deliService.getByUuid(uuid), [uuid]);
-};
-
-// ============================================================================
 // AUTHENTICATION HOOKS
 // ============================================================================
 
@@ -302,13 +172,33 @@ export const useAuthUser = () => {
 };
 
 // ============================================================================
-// DASHBOARD HOOKS
+// USER HOOKS
 // ============================================================================
 
-export const useDashboardStats = () => {
-  return useApi(dashboardService.getStats);
+export const useUsers = () => {
+  return useApi(userService.getAll);
 };
 
-export const useRecentActivities = (limit = 10) => {
-  return useApi(() => dashboardService.getRecentActivities(limit), [limit]);
+export const useUserById = (uuid) => {
+  return useApi(() => userService.getByUuid(uuid), [uuid]);
+};
+
+// ============================================================================
+// FORM HOOKS
+// ============================================================================
+
+export const useForms = () => {
+  return useApi(formService.getAll);
+};
+
+export const useFormById = (uuid) => {
+  return useApi(() => formService.getByUuid(uuid), [uuid]);
+};
+
+export const useFormSubmissions = () => {
+  return useApi(formSubmissionService.getAll);
+};
+
+export const useFormOptions = () => {
+  return useApi(formOptionService.getAll);
 };

@@ -1,14 +1,14 @@
 /*!
 
 =========================================================
-* Team On Site- v2.0.1
+* Light Bootstrap Dashboard React - v2.0.1
 =========================================================
 
-* Product Page: https://www.creative-tim.com/product/light-bootstrap-dashboard-react
-* Copyright 2022 Creative Tim (https://www.creative-tim.com)
+* Product Page: https://www.freelance-solutions.com/product/light-bootstrap-dashboard-react
+* Copyright 2022 Freelance Solutions (https://www.freelance-solutions.com)
 * Licensed under MIT (https://github.com/creativetimofficial/light-bootstrap-dashboard-react/blob/master/LICENSE.md)
 
-* Coded by Creative Tim
+* Coded by Freelance Solutions
 
 =========================================================
 
@@ -84,15 +84,15 @@ function Sidebar({ color, image, routes }) {
         
         <div className="logo d-flex align-items-center justify-content-start">
           <a
-            href="https://www.creative-tim.com?ref=lbd-sidebar"
+            href="https://freelancesoutions.vercel.app/?ref=lbd-sidebar"
             className="simple-text logo-mini mx-1"
           >
             <div className="logo-img">
               <img src={require("assets/img/reactlogo.png")} alt="..." />
             </div>
           </a>
-          <a className="simple-text" href="http://www.creative-tim.com">
-            Creative Tim
+          <a className="simple-text" href="https://freelancesoutions.vercel.app/">
+            Freelance Solutions
           </a>
         </div>
         <Nav>

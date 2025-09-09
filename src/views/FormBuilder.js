@@ -35,6 +35,8 @@ const FormBuilder = () => {
   const [optionModal, setOptionModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [formEditMode, setFormEditMode] = useState(false);
+  const [editingForm, setEditingForm] = useState(null);
   
   // Form data
   const [formData, setFormData] = useState({
@@ -99,10 +101,21 @@ const FormBuilder = () => {
   const handleCreateForm = async () => {
     try {
       setLoading(true);
-      const response = await formService.create(formData);
+      
+      let response;
+      if (formEditMode && editingForm) {
+        // Update existing form
+        response = await formService.update(editingForm.uuid, formData);
+      } else {
+        // Create new form
+        response = await formService.create(formData);
+      }
+      
       if (response.status === 'success') {
-        setSuccess('Form created successfully!');
+        setSuccess(formEditMode ? 'Form updated successfully!' : 'Form created successfully!');
         setFormModal(false);
+        setFormEditMode(false);
+        setEditingForm(null);
         setFormData({
           title: '',
           description: '',
@@ -114,10 +127,24 @@ const FormBuilder = () => {
         loadForms();
       }
     } catch (error) {
-      setError('Failed to create form: ' + error.message);
+      setError(`Failed to ${formEditMode ? 'update' : 'create'} form: ` + error.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditForm = (form) => {
+    setFormEditMode(true);
+    setEditingForm(form);
+    setFormData({
+      title: form.title,
+      description: form.description || '',
+      user_uuid: form.user_uuid || '',
+      country_uuid: form.country_uuid || '',
+      province_uuid: form.province_uuid || '',
+      area_uuid: form.area_uuid || ''
+    });
+    setFormModal(true);
   };
 
   const handleCreateFormItem = async () => {
@@ -246,6 +273,31 @@ const FormBuilder = () => {
       } catch (error) {
         console.error('Error deleting form item:', error);
         setError('Failed to delete form item: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleDeleteForm = async (uuid) => {
+    if (window.confirm('Are you sure you want to delete this form? This action cannot be undone and will also delete all form items and submissions associated with this form.')) {
+      try {
+        setLoading(true);
+        const response = await formService.delete(uuid);
+        if (response && response.status === 'success') {
+          setSuccess('Form deleted successfully!');
+          // Clear selected form if it was the one deleted
+          if (selectedForm && selectedForm.uuid === uuid) {
+            setSelectedForm(null);
+            setFormItems([]);
+          }
+          loadForms();
+        } else {
+          setError('Failed to delete form: ' + (response?.message || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error deleting form:', error);
+        setError('Failed to delete form: ' + error.message);
       } finally {
         setLoading(false);
       }
@@ -509,7 +561,19 @@ const FormBuilder = () => {
               <Button 
                 color="primary" 
                 size="sm" 
-                onClick={() => setFormModal(true)}
+                onClick={() => {
+                  setFormEditMode(false);
+                  setEditingForm(null);
+                  setFormData({
+                    title: '',
+                    description: '',
+                    user_uuid: '',
+                    country_uuid: '',
+                    province_uuid: '',
+                    area_uuid: ''
+                  });
+                  setFormModal(true);
+                }}
               >
                 Create New Form
               </Button>
@@ -545,14 +609,42 @@ const FormBuilder = () => {
                           onClick={() => handleSelectForm(form)}
                         >
                           <CardBody className="p-2">
-                            <h6 className="mb-1">{form.title}</h6>
-                            <small className="text-muted">
-                              {form.description?.substring(0, 50)}...
-                            </small>
-                            <br />
-                            <Badge color="info" className="mt-1">
-                              {form.form_items?.length || 0} items
-                            </Badge>
+                            <div className="d-flex justify-content-between align-items-start">
+                              <div className="flex-grow-1">
+                                <h6 className="mb-1">{form.title}</h6>
+                                <small className="text-muted">
+                                  {form.description?.substring(0, 50)}...
+                                </small>
+                                <br />
+                                <Badge color="info" className="mt-1">
+                                  {form.form_items?.length || 0} items
+                                </Badge>
+                              </div>
+                              <div className="d-flex gap-1">
+                                <Button 
+                                  color="warning" 
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent card selection
+                                    handleEditForm(form);
+                                  }}
+                                  title="Edit Form"
+                                >
+                                  <i className="fas fa-edit"></i>
+                                </Button>
+                                <Button 
+                                  color="danger" 
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent card selection
+                                    handleDeleteForm(form.uuid);
+                                  }}
+                                  title="Delete Form"
+                                >
+                                  <i className="fas fa-trash"></i>
+                                </Button>
+                              </div>
+                            </div>
                           </CardBody>
                         </Card>
                       ))}
@@ -690,8 +782,20 @@ const FormBuilder = () => {
 
       {/* Create Form Modal */}
       <Modal isOpen={formModal} toggle={() => setFormModal(false)}>
-        <ModalHeader toggle={() => setFormModal(false)}>
-          Create New Form
+        <ModalHeader toggle={() => {
+          setFormModal(false);
+          setFormEditMode(false);
+          setEditingForm(null);
+          setFormData({
+            title: '',
+            description: '',
+            user_uuid: '',
+            country_uuid: '',
+            province_uuid: '',
+            area_uuid: ''
+          });
+        }}>
+          {formEditMode ? 'Edit Form' : 'Create New Form'}
         </ModalHeader>
         <ModalBody>
           <Form>
@@ -719,7 +823,19 @@ const FormBuilder = () => {
           </Form>
         </ModalBody>
         <ModalFooter>
-          <Button color="secondary" onClick={() => setFormModal(false)}>
+          <Button color="secondary" onClick={() => {
+            setFormModal(false);
+            setFormEditMode(false);
+            setEditingForm(null);
+            setFormData({
+              title: '',
+              description: '',
+              user_uuid: '',
+              country_uuid: '',
+              province_uuid: '',
+              area_uuid: ''
+            });
+          }}>
             Cancel
           </Button>
           <Button 
@@ -727,7 +843,7 @@ const FormBuilder = () => {
             onClick={handleCreateForm}
             disabled={!formData.title || loading}
           >
-            {loading ? 'Creating...' : 'Create Form'}
+            {loading ? (formEditMode ? 'Updating...' : 'Creating...') : (formEditMode ? 'Update Form' : 'Create Form')}
           </Button>
         </ModalFooter>
       </Modal>

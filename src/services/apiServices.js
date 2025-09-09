@@ -198,10 +198,7 @@ export const visiteService = {
   }
 };
 
-// Expose visiteService globally for UI filter integration
-if (typeof window !== 'undefined') {
-  window.visiteService = visiteService;
-}
+// Services will be exposed globally at the end of the file
 
 // ============================================================================
 // TERRITORY SERVICES (Countries, Provinces, Areas) - Updated to match backend
@@ -1153,6 +1150,16 @@ export const formSubmissionService = {
     }
   },
 
+  // Get submissions by date range
+  getByDateRange: async (start, end) => {
+    try {
+      const response = await api.get(`/form-submissions/date-range?start=${start}&end=${end}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch form submissions by date range: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
   // Create form submission
   create: async (submissionData) => {
     try {
@@ -1306,3 +1313,13 @@ export const formResponseService = {
     }
   }
 };
+
+// ============================================================================
+// GLOBAL SERVICE EXPOSURE
+// ============================================================================
+// Expose services globally for UI filter integration
+if (typeof window !== 'undefined') {
+  window.visiteService = visiteService;
+  window.formSubmissionService = formSubmissionService;
+  window.formResponseService = formResponseService;
+}

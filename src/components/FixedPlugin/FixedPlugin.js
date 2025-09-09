@@ -1,14 +1,14 @@
 /*!
 
 =========================================================
-* Team On Site- v2.0.1
+* Light Bootstrap Dashboard React - v2.0.1
 =========================================================
 
-* Product Page: https://www.creative-tim.com/product/light-bootstrap-dashboard-react
-* Copyright 2022 Creative Tim (https://www.creative-tim.com)
+* Product Page: https://www.freelance-solutions.com/product/light-bootstrap-dashboard-react
+* Copyright 2022 Freelance Solutions (https://www.freelance-solutions.com)
 * Licensed under MIT (https://github.com/creativetimofficial/light-bootstrap-dashboard-react/blob/master/LICENSE.md)
 
-* Coded by Creative Tim
+* Coded by Freelance Solutions
 
 =========================================================
 
@@ -158,7 +158,7 @@ function FixedPlugin({
               <Button
                 block
                 className="btn-fill"
-                href="http://www.creative-tim.com/product/light-bootstrap-dashboard-react"
+                href="https://freelancesoutions.vercel.app/product/light-bootstrap-dashboard-react"
                 rel="noopener noreferrer"
                 target="_blank"
                 variant="info"
@@ -172,7 +172,7 @@ function FixedPlugin({
               <Button
                 block
                 className="btn-fill"
-                href="http://www.creative-tim.com/product/light-bootstrap-dashboard-react"
+                href="https://freelancesoutions.vercel.app/product/light-bootstrap-dashboard-react"
                 rel="noopener noreferrer"
                 target="_blank"
                 variant="default"
@@ -189,7 +189,7 @@ function FixedPlugin({
               <Button
                 block
                 className="btn-fill"
-                href="http://www.creative-tim.com/product/light-bootstrap-dashboard-pro-react"
+                href="https://freelancesoutions.vercel.app/product/light-bootstrap-dashboard-pro-react"
                 rel="noopener noreferrer"
                 target="_blank"
                 variant="primary"
