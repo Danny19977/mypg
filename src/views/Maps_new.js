@@ -8,11 +8,6 @@ import MapFilters from "../components/Maps/MapFilters";
 import DateRangeModal from "../components/Maps/DateRangeModal";
 import RefreshControls from "../components/Maps/RefreshControls";
 
-// Load test utilities in development
-if (process.env.NODE_ENV === 'development') {
-  import('../utils/filterTestUtils.js');
-}
-
 function Maps() {
   const mapRef = useRef(null);
   const [dateRange, setDateRange] = useState();

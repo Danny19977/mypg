@@ -839,19 +839,29 @@ const FormSubmissions = () => {
       if (item.question) {
         const question = item.question.toLowerCase();
         
-        // Check for latitude fields
-        if (question.includes('latitude') || question.includes('lat') || 
-            question.includes('coordonnée latitude') || question.includes('coord lat')) {
+        // Check for latitude fields (more comprehensive pattern matching)
+        if (question.includes('latitude') || question.includes('lat ') || question.includes('lat.') || 
+            question.includes('coordonnée latitude') || question.includes('coord lat') ||
+            question.includes('géolocalisation lat') || question.includes('position lat')) {
           console.log(`📍 Found latitude field: ${item.question} (${item.uuid})`);
           handleInputChange(item.uuid, latitude, 'number');
         }
         
-        // Check for longitude fields  
-        if (question.includes('longitude') || question.includes('lng') || 
-            question.includes('long') || question.includes('coordonnée longitude') || 
-            question.includes('coord lng')) {
+        // Check for longitude fields (more comprehensive pattern matching)
+        if (question.includes('longitude') || question.includes('lng ') || question.includes('lng.') || 
+            question.includes('long ') || question.includes('long.') || 
+            question.includes('coordonnée longitude') || question.includes('coord lng') ||
+            question.includes('géolocalisation lng') || question.includes('position lng')) {
           console.log(`📍 Found longitude field: ${item.question} (${item.uuid})`);
           handleInputChange(item.uuid, longitude, 'number');
+        }
+        
+        // Check for combined GPS coordinate fields
+        if (question.includes('coordonnées') || question.includes('coordinates') || 
+            question.includes('géolocalisation') || question.includes('gps') ||
+            question.includes('position géographique')) {
+          console.log(`📍 Found combined GPS field: ${item.question} (${item.uuid})`);
+          handleInputChange(item.uuid, `${latitude}, ${longitude}`, 'text');
         }
       }
     });
@@ -1098,7 +1108,7 @@ const FormSubmissions = () => {
       console.log('🌍 GPS Coordinates before submission:', gpsCoordinates);
       console.log('🌍 GPS Status:', gpsStatus);
       
-      // Create submission with all required UUIDs and GPS coordinates at submission level
+      // Step 1: Create form submission (VisiteHarder) with updated field names
       const submissionData = {
         form_uuid: selectedForm.uuid,
         submitter_name: user?.fullname || user?.name || 'Form Viewer',
@@ -1108,30 +1118,72 @@ const FormSubmissions = () => {
         ...(user?.uuid && { user_uuid: user.uuid }),
         ...(user?.country_uuid && { country_uuid: user.country_uuid }),
         ...(user?.province_uuid && { province_uuid: user.province_uuid }),
-        ...(user?.area_uuid && { area_uuid: user.area_uuid })
+        ...(user?.area_uuid && { area_uuid: user.area_uuid }),
+        // Add signature if available
+        ...(user?.signature && { signature: user.signature })
       };
 
-      console.log('📝 Submitting form with data:', submissionData);
+      console.log('📝 Creating form submission with data:', submissionData);
 
       const submissionResponse = await formSubmissionService.create(submissionData);
       console.log('📝 Form submission response:', submissionResponse);
       
       if (submissionResponse.status === 'success') {
         const submissionUuid = submissionResponse.data.uuid;
+        console.log('✅ Form submission created with UUID:', submissionUuid);
         
-        // Create responses for all form fields including conditional fields
+        // Step 2: Prepare all form responses for bulk submission
+        const formResponses = [];
+        
+        // Process main form fields and conditional fields
         for (const [itemUuid, responseData] of Object.entries(responses)) {
           if (responseData.value !== null && responseData.value !== undefined && responseData.value.toString().trim() !== '') {
             
-            // Prepare response payload based on backend VisiteData model
+            let actualFormItemUuid = itemUuid;
+            let entryLabel = null;
+            
+            // Handle conditional fields vs regular fields
+            if (itemUuid.includes('_')) {
+              // This is a conditional field - extract the parent item UUID
+              const parts = itemUuid.split('_');
+              if (parts.length >= 3) {
+                // Format: parentUuid_selectedValue_fieldId
+                const parentUuid = parts[0];
+                const selectedValue = parts[1];
+                const fieldId = parts[parts.length - 1];
+                
+                // Use the parent form item UUID for conditional fields
+                actualFormItemUuid = parentUuid;
+                entryLabel = `Conditional Field (${selectedValue}): ${fieldId}`;
+                
+                console.log('🔗 Processing conditional field:', {
+                  originalKey: itemUuid,
+                  parentUuid,
+                  selectedValue,
+                  fieldId,
+                  entryLabel
+                });
+              }
+            }
+
+            // Create response payload with updated backend field names
             const responsePayload = {
-              visite_harder_uuid: submissionUuid, // Reference to form submission
-              form_item_uuid: itemUuid, // Reference to form field
-              // Include user and location info for easier querying
+              visite_harder_uuid: submissionUuid,
+              form_item_uuid: actualFormItemUuid,
+              // Include user information for easier querying (as per backend model)
               ...(user?.uuid && { user_uuid: user.uuid }),
               ...(user?.country_uuid && { country_uuid: user.country_uuid }),
               ...(user?.province_uuid && { province_uuid: user.province_uuid }),
-              ...(user?.area_uuid && { area_uuid: user.area_uuid })
+              ...(user?.area_uuid && { area_uuid: user.area_uuid }),
+              // Add entry label if it's a conditional field
+              ...(entryLabel && { entry_label: entryLabel }),
+              // Add GPS coordinates to each response if available
+              ...(gpsCoordinates.latitude !== null && gpsCoordinates.longitude !== null && 
+                  typeof gpsCoordinates.latitude === 'number' && typeof gpsCoordinates.longitude === 'number' && 
+                  !isNaN(gpsCoordinates.latitude) && !isNaN(gpsCoordinates.longitude) && {
+                latitude: gpsCoordinates.latitude,
+                longitude: gpsCoordinates.longitude
+              })
             };
 
             // Set the appropriate value field based on type with proper type conversion
@@ -1175,80 +1227,24 @@ const FormSubmissions = () => {
                 responsePayload.text_value = value.toString();
             }
 
-            // Add GPS coordinates to each response if available
-            if (gpsCoordinates.latitude !== null && gpsCoordinates.longitude !== null && 
-                typeof gpsCoordinates.latitude === 'number' && typeof gpsCoordinates.longitude === 'number' && 
-                !isNaN(gpsCoordinates.latitude) && !isNaN(gpsCoordinates.longitude)) {
-              responsePayload.latitude = gpsCoordinates.latitude;
-              responsePayload.longitude = gpsCoordinates.longitude;
-            }
-
-            console.log('💾 Saving response:', {
-              itemUuid,
+            console.log('📝 Adding response to bulk submission:', {
+              itemUuid: actualFormItemUuid,
+              originalKey: itemUuid,
               responsePayload,
               originalValue: value,
               valueType: responseData.valueType
             });
 
-            try {
-              const responseResult = await formResponseService.create(responsePayload);
-              console.log('✅ Response saved successfully:', responseResult);
-            } catch (error) {
-              console.error(`❌ Failed to save response for ${itemUuid}:`, error);
-              // Continue with other responses even if one fails
-            }
+            formResponses.push(responsePayload);
           }
         }
 
-        // Handle conditional fields
-        for (const [conditionalKey, conditionalData] of Object.entries(responses)) {
-          if (conditionalKey.includes('_') && conditionalData.value !== null && 
-              conditionalData.value !== undefined && conditionalData.value.toString().trim() !== '') {
-            
-            // Extract parent item UUID and field info from conditional key
-            const parts = conditionalKey.split('_');
-            if (parts.length >= 3) {
-              const parentUuid = parts[0];
-              const selectedValue = parts[1];
-              const fieldId = parts[parts.length - 1];
-              
-              // Create a virtual form_item_uuid for conditional fields
-              const conditionalFieldUuid = `${parentUuid}_conditional_${fieldId}`;
-              
-              const conditionalResponsePayload = {
-                visite_harder_uuid: submissionUuid,
-                form_item_uuid: conditionalFieldUuid,
-                text_value: `${conditionalData.value} (conditional from ${parentUuid} when ${selectedValue})`,
-                // Include user and location info
-                ...(user?.uuid && { user_uuid: user.uuid }),
-                ...(user?.country_uuid && { country_uuid: user.country_uuid }),
-                ...(user?.province_uuid && { province_uuid: user.province_uuid }),
-                ...(user?.area_uuid && { area_uuid: user.area_uuid }),
-                // Add GPS coordinates
-                ...(gpsCoordinates.latitude !== null && gpsCoordinates.longitude !== null && 
-                    typeof gpsCoordinates.latitude === 'number' && typeof gpsCoordinates.longitude === 'number' && 
-                    !isNaN(gpsCoordinates.latitude) && !isNaN(gpsCoordinates.longitude) && {
-                  latitude: gpsCoordinates.latitude,
-                  longitude: gpsCoordinates.longitude
-                })
-              };
-
-              try {
-                const conditionalResult = await formResponseService.create(conditionalResponsePayload);
-                console.log('✅ Conditional field response saved:', conditionalResult);
-              } catch (error) {
-                console.error(`❌ Failed to save conditional response for ${conditionalKey}:`, error);
-              }
-            }
-          }
-        }
-
-        // Auto-submit GPS coordinates as dedicated form responses if available
+        // Auto-add GPS coordinates as dedicated responses if we have latitude/longitude form fields
         if (gpsCoordinates.latitude !== null && gpsCoordinates.longitude !== null && 
             typeof gpsCoordinates.latitude === 'number' && typeof gpsCoordinates.longitude === 'number' && 
             !isNaN(gpsCoordinates.latitude) && !isNaN(gpsCoordinates.longitude)) {
           
-          console.log('🌍 Adding GPS coordinates as automatic form responses');
+          console.log('🌍 Processing GPS coordinates for form fields');
           
           // Check if there are existing latitude/longitude form items
           const latitudeItem = formItems.find(item => 
@@ -1270,83 +1266,96 @@ const FormSubmissions = () => {
             )
           );
 
-          // Create latitude response if field exists
-          if (latitudeItem) {
-            try {
-              const latitudeResponse = {
-                visite_harder_uuid: submissionUuid,
-                form_item_uuid: latitudeItem.uuid,
-                number_value: gpsCoordinates.latitude,
-                latitude: gpsCoordinates.latitude,
-                longitude: gpsCoordinates.longitude,
-                ...(user?.uuid && { user_uuid: user.uuid }),
-                ...(user?.country_uuid && { country_uuid: user.country_uuid }),
-                ...(user?.province_uuid && { province_uuid: user.province_uuid }),
-                ...(user?.area_uuid && { area_uuid: user.area_uuid })
-              };
-              const latitudeResult = await formResponseService.create(latitudeResponse);
-              console.log('✅ Latitude response saved successfully:', latitudeResult);
-            } catch (error) {
-              console.error('❌ Failed to save latitude response:', error);
-            }
+          console.log('🌍 Found GPS form fields:', { latitudeItem, longitudeItem });
+
+          // Add latitude response if field exists and wasn't already filled by user
+          if (latitudeItem && !responses[latitudeItem.uuid]) {
+            formResponses.push({
+              visite_harder_uuid: submissionUuid,
+              form_item_uuid: latitudeItem.uuid,
+              number_value: gpsCoordinates.latitude,
+              entry_label: 'Auto-captured GPS Latitude',
+              latitude: gpsCoordinates.latitude,
+              longitude: gpsCoordinates.longitude,
+              ...(user?.uuid && { user_uuid: user.uuid }),
+              ...(user?.country_uuid && { country_uuid: user.country_uuid }),
+              ...(user?.province_uuid && { province_uuid: user.province_uuid }),
+              ...(user?.area_uuid && { area_uuid: user.area_uuid })
+            });
+            console.log('🌍 Added latitude GPS response');
           }
 
-          // Create longitude response if field exists
-          if (longitudeItem) {
-            try {
-              const longitudeResponse = {
-                visite_harder_uuid: submissionUuid,
-                form_item_uuid: longitudeItem.uuid,
-                number_value: gpsCoordinates.longitude,
-                latitude: gpsCoordinates.latitude,
-                longitude: gpsCoordinates.longitude,
-                ...(user?.uuid && { user_uuid: user.uuid }),
-                ...(user?.country_uuid && { country_uuid: user.country_uuid }),
-                ...(user?.province_uuid && { province_uuid: user.province_uuid }),
-                ...(user?.area_uuid && { area_uuid: user.area_uuid })
-              };
-              const longitudeResult = await formResponseService.create(longitudeResponse);
-              console.log('✅ Longitude response saved successfully:', longitudeResult);
-            } catch (error) {
-              console.error('❌ Failed to save longitude response:', error);
-            }
+          // Add longitude response if field exists and wasn't already filled by user
+          if (longitudeItem && !responses[longitudeItem.uuid]) {
+            formResponses.push({
+              visite_harder_uuid: submissionUuid,
+              form_item_uuid: longitudeItem.uuid,
+              number_value: gpsCoordinates.longitude,
+              entry_label: 'Auto-captured GPS Longitude',
+              latitude: gpsCoordinates.latitude,
+              longitude: gpsCoordinates.longitude,
+              ...(user?.uuid && { user_uuid: user.uuid }),
+              ...(user?.country_uuid && { country_uuid: user.country_uuid }),
+              ...(user?.province_uuid && { province_uuid: user.province_uuid }),
+              ...(user?.area_uuid && { area_uuid: user.area_uuid })
+            });
+            console.log('🌍 Added longitude GPS response');
           }
+        }
 
-          // If no specific GPS fields were found, create automatic GPS response entries
-          if (!latitudeItem && !longitudeItem) {
-            console.log('🌍 No GPS form fields found, creating automatic GPS metadata responses');
+        // Step 3: Submit all responses using bulk endpoint
+        if (formResponses.length > 0) {
+          console.log('💾 Submitting bulk responses:', formResponses);
+          
+          const bulkPayload = {
+            visite_harder_uuid: submissionUuid,
+            responses: formResponses
+          };
+
+          try {
+            // Use the bulk endpoint from the updated backend API
+            const bulkResponse = await fetch(`${process.env.REACT_APP_API_URL || '/api'}/public/form-responses/bulk`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(localStorage.getItem('authToken') && {
+                  'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                })
+              },
+              body: JSON.stringify(bulkPayload)
+            });
+
+            const bulkResult = await bulkResponse.json();
+            console.log('📦 Bulk response submission result:', bulkResult);
+
+            if (bulkResult.status === 'success' || bulkResult.status === 'partial_success') {
+              console.log('✅ Form responses submitted successfully');
+              console.log(`📊 Created ${bulkResult.created_count} out of ${formResponses.length} responses`);
+              
+              if (bulkResult.errors && bulkResult.errors.length > 0) {
+                console.warn('⚠️ Some responses had errors:', bulkResult.errors);
+              }
+            } else {
+              throw new Error(bulkResult.message || 'Failed to submit form responses');
+            }
+          } catch (bulkError) {
+            console.error('❌ Bulk submission failed, falling back to individual submissions:', bulkError);
             
-            try {
-              // Create a combined GPS coordinates response
-              const gpsMetadataResponse = {
-                visite_harder_uuid: submissionUuid,
-                form_item_uuid: `gps_auto_${submissionUuid}`, // Virtual field for GPS data
-                text_value: `GPS Coordinates: ${gpsCoordinates.latitude}, ${gpsCoordinates.longitude}`,
-                latitude: gpsCoordinates.latitude,
-                longitude: gpsCoordinates.longitude,
-                ...(user?.uuid && { user_uuid: user.uuid }),
-                ...(user?.country_uuid && { country_uuid: user.country_uuid }),
-                ...(user?.province_uuid && { province_uuid: user.province_uuid }),
-                ...(user?.area_uuid && { area_uuid: user.area_uuid })
-              };
-              const gpsResult = await formResponseService.create(gpsMetadataResponse);
-              console.log('✅ GPS metadata saved successfully:', gpsResult);
-            } catch (error) {
-              console.error('❌ Failed to save GPS metadata:', error);
+            // Fallback: Submit responses individually
+            for (const [index, response] of formResponses.entries()) {
+              try {
+                const responseResult = await formResponseService.create(response);
+                console.log(`✅ Individual response ${index + 1} saved:`, responseResult);
+              } catch (error) {
+                console.error(`❌ Failed to save individual response ${index + 1}:`, error);
+              }
             }
           }
         } else {
-          console.log('🌍 GPS coordinates not available for auto-submission:', {
-            latitude: gpsCoordinates.latitude,
-            longitude: gpsCoordinates.longitude,
-            latitudeType: typeof gpsCoordinates.latitude,
-            longitudeType: typeof gpsCoordinates.longitude,
-            latitudeIsNaN: isNaN(gpsCoordinates.latitude),
-            longitudeIsNaN: isNaN(gpsCoordinates.longitude)
-          });
+          console.log('📝 No form responses to submit');
         }
 
-        setSuccess('Form submitted successfully with all field data and GPS coordinates!');
+        setSuccess('Form submitted successfully!');
         setResponses({});
         setConditionallyVisibleFields({});
         setValidationErrors({});
@@ -3116,7 +3125,7 @@ const FormSubmissions = () => {
                     </Droppable>
                   </DragDropContext>
 
-                  {/* Enhanced Debug Information */}
+                  {/* Enhanced Debug Information - HIDDEN 
                   {Object.keys(responses).length > 0 && (
                     <div className="debug-section mb-4 p-4">
                       <h6 className="mb-3 text-primary fw-bold">
@@ -3235,6 +3244,7 @@ const FormSubmissions = () => {
                       </div>
                     </div>
                   )}
+                  */}
 
                   {/* Enhanced Submission Button */}
                   <div className="submission-section text-center mt-5 p-4 bg-light rounded-3">

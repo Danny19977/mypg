@@ -815,6 +815,108 @@ export const userLogsService = {
 };
 
 // ============================================================================
+// VISITE DATA SERVICES - For /visite-data endpoints
+// ============================================================================
+
+export const visiteDataService = {
+  // Get all visite data
+  getAll: async () => {
+    try {
+      const response = await api.get('/visite-data/all');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch visite data: ${error.message}`);
+    }
+  },
+
+  // Get visite data by entry order
+  getByEntryOrder: async (entryOrder) => {
+    try {
+      const response = await api.get(`/visite-data/entry-order/${entryOrder}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch visite data by entry order: ${error.message}`);
+    }
+  },
+
+  // Get visite data by user
+  getByUser: async (userUuid) => {
+    try {
+      const response = await api.get(`/visite-data/user/${userUuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch visite data by user: ${error.message}`);
+    }
+  },
+
+  // Get visite data by area
+  getByArea: async (areaUuid) => {
+    try {
+      const response = await api.get(`/visite-data/area/${areaUuid}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch visite data by area: ${error.message}`);
+    }
+  },
+
+  // Get visite data with related entities (users, areas, provinces, countries)
+  getAllWithRelations: async () => {
+    try {
+      const response = await api.get('/visite-data/all-with-relations');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch visite data with relations: ${error.message}`);
+    }
+  },
+
+  // Get visite data grouped by entry_order
+  getGroupedByEntryOrder: async () => {
+    try {
+      const response = await api.get('/visite-data/grouped-by-entry-order');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch grouped visite data: ${error.message}`);
+    }
+  },
+
+  // Get map markers data grouped by visite_harder_uuid
+  // Returns text_value, latitude, longitude for each entry
+  // Data ordered by created_at DESC, formatted as YYYY-MM-DD HH:MM:SS
+  getMapMarkersData: async () => {
+    try {
+      const response = await api.get('/visite-data/map-markers');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch map markers data: ${error.message}`);
+    }
+  },
+
+  // Get map markers data with filtering options
+  getMapMarkersDataFiltered: async (filters = {}) => {
+    try {
+      const params = new URLSearchParams();
+      
+      // Add filters as query parameters
+      if (filters.user_uuid) params.append('user_uuid', filters.user_uuid);
+      if (filters.country_uuid) params.append('country_uuid', filters.country_uuid);
+      if (filters.province_uuid) params.append('province_uuid', filters.province_uuid);
+      if (filters.area_uuid) params.append('area_uuid', filters.area_uuid);
+      if (filters.date_from) params.append('date_from', filters.date_from);
+      if (filters.date_to) params.append('date_to', filters.date_to);
+      if (filters.limit) params.append('limit', filters.limit);
+      
+      const queryString = params.toString();
+      const url = queryString ? `/visite-data/map-markers?${queryString}` : '/visite-data/map-markers';
+      
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch filtered map markers data: ${error.message}`);
+    }
+  }
+};
+
+// ============================================================================
 // FORM SERVICES - For dynamic form management
 // ============================================================================
 
@@ -1163,7 +1265,7 @@ export const formSubmissionService = {
   // Create form submission
   create: async (submissionData) => {
     try {
-      const response = await api.post('/visite-harder/create', submissionData);
+      const response = await api.post('/form-submissions/create', submissionData);
       return response.data;
     } catch (error) {
       throw new Error(`Failed to create form submission: ${error.response?.data?.message || error.message}`);
@@ -1191,13 +1293,23 @@ export const formSubmissionService = {
   },
 
   // PUBLIC ENDPOINTS (no authentication required)
-  // Submit form response
+  // Submit form response using the public endpoint
   submitForm: async (submissionData) => {
     try {
       const response = await api.post('/public/form-submissions', submissionData);
       return response.data;
     } catch (error) {
       throw new Error(`Failed to submit form: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Submit bulk form responses
+  submitBulkResponses: async (bulkData) => {
+    try {
+      const response = await api.post('/public/form-responses/bulk', bulkData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to submit bulk responses: ${error.response?.data?.message || error.message}`);
     }
   }
 };
@@ -1275,7 +1387,7 @@ export const formResponseService = {
   // Create form response
   create: async (responseData) => {
     try {
-      const response = await api.post('/visite-data/create', responseData);
+      const response = await api.post('/form-responses/create', responseData);
       return response.data;
     } catch (error) {
       throw new Error(`Failed to create form response: ${error.response?.data?.message || error.message}`);
@@ -1303,13 +1415,23 @@ export const formResponseService = {
   },
 
   // PUBLIC ENDPOINTS (no authentication required)
-  // Submit individual field responses
+  // Submit individual field responses using the public endpoint
   submitResponse: async (responseData) => {
     try {
       const response = await api.post('/public/form-responses', responseData);
       return response.data;
     } catch (error) {
       throw new Error(`Failed to submit response: ${error.response?.data?.message || error.message}`);
+    }
+  },
+
+  // Submit bulk field responses
+  submitBulkResponses: async (bulkData) => {
+    try {
+      const response = await api.post('/public/form-responses/bulk', bulkData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to submit bulk responses: ${error.response?.data?.message || error.message}`);
     }
   }
 };
