@@ -8,7 +8,7 @@
     "ajv": "^8.16.0",
     "axios": "^1.11.0",
     "bootstrap": "4.6.0",
-    "chartist": "0.11.4",
+    "chartist": "^0.10.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.12",
     "gulp": "4.0.2",

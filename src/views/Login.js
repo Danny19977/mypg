@@ -92,9 +92,9 @@ function Login() {
         }
       });
       
-      // Redirect to dashboard after a short delay to show the toast
+      // Redirect to form submissions after a short delay to show the toast
       setTimeout(() => {
-        history.push('/admin/dashboard');
+        history.push('/admin/form-submissions');
       }, 1000);
       
     } catch (err) {
