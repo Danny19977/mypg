@@ -1,5 +1,22 @@
-// ...existing code...
+
 import api from './api';
+
+// Get map images data with file_url as array of strings
+const getMapImagesData = async () => {
+  try {
+    console.log('🎯 Fetching map images from:', '/visite-data/map-images');
+    const response = await api.get('/visite-data/map-images');
+    console.log('📸 Map images response:', {
+      status: response.data.status,
+      count: response.data.data?.length || 0,
+      sample: response.data.data?.[0]
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Failed to fetch map images:', error);
+    throw new Error(`Failed to fetch map images data: ${error.message}`);
+  }
+};
 
 // ============================================================================
 // AUTHENTICATION SERVICES
@@ -819,6 +836,8 @@ export const userLogsService = {
 // ============================================================================
 
 export const visiteDataService = {
+  // Get map images data with file_url as JSON array
+  getMapImagesData,
   // Get all visite data
   getAll: async () => {
     try {
@@ -884,9 +903,22 @@ export const visiteDataService = {
   // Data ordered by created_at DESC, formatted as YYYY-MM-DD HH:MM:SS
   getMapMarkersData: async () => {
     try {
+      console.log('🎯 Fetching map markers from:', '/visite-data/map-markers');
       const response = await api.get('/visite-data/map-markers');
+      console.log('📍 Map markers response:', {
+        status: response.data.status,
+        dataCount: response.data.data?.length || 0,
+        sampleData: response.data.data?.[0] || null,
+        availableFields: response.data.data?.[0] ? Object.keys(response.data.data[0]) : [],
+        textValues: response.data.data?.slice(0, 3).map(item => ({
+          id: item.id,
+          text_value: item.text_value,
+          visite_harder_uuid: item.visite_harder_uuid
+        }))
+      });
       return response.data;
     } catch (error) {
+      console.error('❌ Failed to fetch map markers:', error);
       throw new Error(`Failed to fetch map markers data: ${error.message}`);
     }
   },
